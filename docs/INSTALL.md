@@ -4,9 +4,11 @@ AutoEvolve is Markdown, not software. "Installing" it means putting the mindset 
 AI coding tool will read it. Pick whichever applies; you can use more than one.
 
 ## 1. The universal way: `AGENTS.md`
-Copy [`../AGENTS.md`](../AGENTS.md) into your repository root. Most agentic coding tools
-read a root `AGENTS.md` automatically. If yours doesn't, keep the file there anyway and add
-a one-liner to your tool's own instructions: *"Follow the operating mindset in `AGENTS.md`."*
+Copy [`../AGENTS.md`](../AGENTS.md) into your repository root. Many agentic coding tools
+read a root `AGENTS.md` automatically, including **Codex** and **Antigravity** (Antigravity
+reads it natively as of v1.20.3), so for those tools this single file is the whole install.
+If your tool doesn't read `AGENTS.md`, keep the file there anyway and add a one-liner to
+your tool's own instructions: *"Follow the operating mindset in `AGENTS.md`."*
 
 ```bash
 # from your repo root
@@ -17,23 +19,31 @@ If your repo already has an `AGENTS.md`, append AutoEvolve's contents under a cl
 rather than overwriting your existing instructions.
 
 ## 2. As tool-native rules
-Copy the thin adapter for your tool from [`../adapters/`](../adapters/) to the path your
-tool expects:
+Some tools read their own instruction file rather than `AGENTS.md`. Copy the thin adapter
+for your tool from [`../adapters/`](../adapters/) to the path it expects:
 
 | Tool | Copy | To |
 | --- | --- | --- |
+| Claude Code | `adapters/claude.md` | `CLAUDE.md` (repo root) |
 | Cursor | `adapters/cursor.mdc` | `.cursor/rules/autoevolve.mdc` |
 | Windsurf | `adapters/windsurf.md` | `.windsurf/rules/autoevolve.md` |
 | GitHub Copilot | `adapters/copilot-instructions.md` | `.github/copilot-instructions.md` |
 
-Each adapter is a short pointer to `AGENTS.md` plus the condensed core, so it's safe to
-drop in even alongside your own rules. (On newer Windsurf, `.windsurf/rules/` still works
-but `.devin/rules/` is the preferred location.)
+Each adapter carries the condensed core and points back at `AGENTS.md`, so it's safe to
+drop in even alongside your own rules. Notes:
+
+- **Claude Code** does not read `AGENTS.md`, which is why it gets its own `CLAUDE.md`. If
+  you also keep `AGENTS.md`, you can instead make `CLAUDE.md` a single line, `@AGENTS.md`,
+  to import it and avoid a second copy.
+- **Codex** and **Antigravity** read root `AGENTS.md` natively, so they need no file here
+  (see option 1).
+- On newer Windsurf, `.windsurf/rules/` still works but `.devin/rules/` is preferred.
 
 ## 3. As a loadable skill
 If your agent supports a skills directory, copy
 [`../skills/autoevolve/SKILL.md`](../skills/autoevolve/SKILL.md) into it (keeping the
-`skills/autoevolve/SKILL.md` layout). The frontmatter tells the agent when to load it:
+`skills/autoevolve/SKILL.md` layout; for Claude Code that path is
+`.claude/skills/autoevolve/SKILL.md`). The frontmatter tells the agent when to load it:
 essentially, whenever it's about to change code in an existing repo.
 
 ## 4. As commands

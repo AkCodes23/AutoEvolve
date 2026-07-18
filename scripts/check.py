@@ -14,7 +14,12 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADAPTERS = ["adapters/cursor.mdc", "adapters/windsurf.md", "adapters/copilot-instructions.md"]
+ADAPTERS = [
+    "adapters/cursor.mdc",
+    "adapters/windsurf.md",
+    "adapters/copilot-instructions.md",
+    "adapters/claude.md",
+]
 
 failures: list[str] = []
 

@@ -273,8 +273,9 @@ Full details, including the per-tool adapters, are in [`docs/INSTALL.md`](docs/I
 1. **The universal way, `AGENTS.md`.** Copy [`AGENTS.md`](AGENTS.md) into your repo root.
    Many AI coding tools read a root `AGENTS.md` automatically; point the rest at it.
 2. **As tool-native rules.** Copy the thin adapter for your tool from
-   [`adapters/`](adapters/): Cursor, Windsurf, or GitHub Copilot. Each is a condensed core
-   that points back at `AGENTS.md`.
+   [`adapters/`](adapters/): Claude Code, Cursor, Windsurf, or GitHub Copilot. Each is a
+   condensed core that points back at `AGENTS.md`. (Codex and Antigravity read a root
+   `AGENTS.md` natively, so they need no adapter.)
 3. **As a loadable skill.** Copy [`skills/autoevolve/SKILL.md`](skills/autoevolve/SKILL.md)
    into your agent's skills directory so it loads on demand.
 4. **As commands.** The templates in [`commands/`](commands/) are concrete, invocable
@@ -296,6 +297,7 @@ commands/                     invocable prompt templates
   review.md                   an over-engineering review
   journal.md                  the experiment-log format
 adapters/                     thin per-tool rule files, all pointing at AGENTS.md
+  claude.md                   Claude Code (copy to CLAUDE.md)
   cursor.mdc                  Cursor
   windsurf.md                 Windsurf
   copilot-instructions.md     GitHub Copilot
