@@ -1,18 +1,18 @@
 # The operating checklist
 
 The full scope of the AutoEvolve mindset as a checklist you can literally follow on any
-task. This is the standalone version of the "what all to do" section in
-[`../AGENTS.md`](../AGENTS.md).
+task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list.
 
 ## Set up the objective
-- [ ] Find the human-owned goal/spec that defines "better." If it's missing or vague,
-      propose one and ask the human — don't silently invent it.
+- [ ] Read `DIRECTION.md` if it exists (human-owned, read-only). If it's missing or vague,
+      propose one and ask the human, don't silently invent the objective.
 - [ ] Identify the signal and its read-only source. Never edit, wrap, or "improve" the
-      scorer/harness — optimize the objective, never the ruler.
-- [ ] Turn the stated goal into one or more numbers a *run* produces.
+      scorer/harness, optimize the objective, never the ruler.
+- [ ] Turn the stated goal into a concrete signal a *run* produces: a number, a
+      red-to-green test, or an acceptance check you can confirm.
 - [ ] Locate or write the cheapest automatic check. Confirm a clean git tree with HEAD =
       current best. Record the baseline.
-- [ ] Reserve a never-drop **canary** case and hold out / rotate some inputs — a signal
+- [ ] Reserve a never-drop **canary** case and hold out / rotate some inputs, a signal
       you keep beating may mean you're overfitting it, not improving. (The signal's
       *definition* stays frozen; the canary and held-out inputs cross-check it.)
 
@@ -29,7 +29,7 @@ task. This is the standalone version of the "what all to do" section in
       identical.
 - [ ] Fix bugs at the root cause: grep every caller, fix the shared function once.
 - [ ] Keep the tree clean before you edit, so a rejected change reverts with a simple
-      `git restore` — don't commit until it verifies.
+      `git restore`, don't commit until it verifies.
 
 ## Verify
 - [ ] Run cheap-first: parses/compiles → fast smoke test → full check. Abort a candidate
@@ -40,11 +40,12 @@ task. This is the standalone version of the "what all to do" section in
 - [ ] Track multiple qualities (correctness, speed, memory, size, readability), not one.
 
 ## Keep or revert
-- [ ] Keep only on a strict improvement with no forbidden regression — OR neutral-but-
-      simpler — OR a deletion. On keep, commit it: HEAD is now your best-known state.
+- [ ] Keep only on a strict improvement with no forbidden regression, OR neutral-but-
+      simpler, OR a deletion. On keep, commit it: HEAD is now your best-known state.
 - [ ] Reject a tiny gain that adds hacky complexity.
-- [ ] Otherwise hard-revert (`git restore`) to the last accepted state; never leave an
-      unverified edit in the tree.
+- [ ] Otherwise hard-revert to the last accepted state (`git restore . && git clean -fd`,
+      which also drops any new files; or `git stash`); never leave an unverified edit in
+      the tree.
 - [ ] Note the best idea per niche (fastest / smallest / clearest) in the journal, and
       cross-pollinate between them.
 
@@ -54,7 +55,7 @@ task. This is the standalone version of the "what all to do" section in
       one-liners.
 - [ ] Mark any deliberate corner-cut with an `evolve:` comment naming the ceiling and the
       upgrade path.
-- [ ] Don't pause to ask "should I continue?" — refuel ideas (re-read sources, combine
+- [ ] Don't pause to ask "should I continue?", refuel ideas (re-read sources, combine
       near-misses, try a radical change). On a plateau, switch modes.
 
 ## Never skip (guardrails)
