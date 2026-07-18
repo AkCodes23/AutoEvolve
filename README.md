@@ -310,5 +310,3 @@ the mindset changes, change `AGENTS.md`.
 AutoEvolve is an independent synthesis of publicly described ideas. It is not affiliated
 with or endorsed by AlphaEvolve, autoresearch, ponytail, or their authors. See
 [`docs/SOURCES.md`](docs/SOURCES.md) for references.
-
-MIT, see [LICENSE](LICENSE).
