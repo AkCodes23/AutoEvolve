@@ -34,17 +34,6 @@ def markdown_files() -> list[str]:
     return sorted(out)
 
 
-def all_text_files() -> list[str]:
-    out = []
-    for dp, dirs, files in os.walk(ROOT):
-        if os.sep + ".git" in dp:
-            continue
-        for f in files:
-            if f.endswith((".md", ".mdc", ".py", ".yml", ".yaml", ".sh", ".toml", ".cff", ".txt")):
-                out.append(os.path.join(dp, f))
-    return sorted(out)
-
-
 def check_no_em_dashes() -> None:
     hits = []
     for path in markdown_files():
@@ -55,17 +44,28 @@ def check_no_em_dashes() -> None:
         failures.append("Em/en dashes found (use commas, colons, or parentheses):\n" + "\n".join(hits))
 
 
-def check_no_forbidden_word() -> None:
-    # The mindset is tool-neutral: no specific assistant product name in the content.
+# The mindset core must work with any tool, so it should not name a specific assistant
+# product. The adapters, the README, and INSTALL are exempt: those legitimately name tools.
+CORE = ("AGENTS.md", "skills/", "commands/", "docs/PRINCIPLES.md", "docs/EXAMPLE.md", "docs/CHECKLIST.md")
+ASSISTANT_PRODUCTS = ["claude", "cursor", "copilot", "windsurf", "codex", "antigravity", "gemini", "cline", "devin"]
+
+
+def check_core_is_tool_neutral() -> None:
+    pat = re.compile(r"\b(" + "|".join(ASSISTANT_PRODUCTS) + r")\b", re.IGNORECASE)
     hits = []
-    for path in all_text_files():
-        if rel(path) == os.path.join("scripts", "check.py"):
-            continue  # this file names the rule
-        for i, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
-            if re.search(r"claude", line, re.IGNORECASE):
-                hits.append(f"  {rel(path)}:{i}")
+    for path in markdown_files():
+        r = rel(path).replace(os.sep, "/")
+        if not r.startswith(CORE):
+            continue
+        for i, line in enumerate(open(path, encoding="utf-8"), 1):
+            m = pat.search(line)
+            if m:
+                hits.append(f"  {r}:{i} (names '{m.group(0)}')")
     if hits:
-        failures.append("Tool-specific product name found (keep the mindset tool-neutral):\n" + "\n".join(hits))
+        failures.append(
+            "The mindset core names a specific tool. Keep AGENTS.md and the core "
+            "tool-neutral; tool names belong in adapters/:\n" + "\n".join(hits)
+        )
 
 
 def check_links_resolve() -> None:
@@ -107,7 +107,7 @@ def check_adapters_in_sync() -> None:
     if len(uniq) > 1:
         failures.append(
             "Adapter condensed cores have drifted apart (their bodies must be identical; "
-            "edit AGENTS.md and re-sync all three):\n  " + "\n  ".join(bodies.keys())
+            "edit AGENTS.md and re-sync every adapter):\n  " + "\n  ".join(bodies.keys())
         )
 
 
@@ -120,7 +120,7 @@ def check_canonical_source_exists() -> None:
 def main() -> int:
     check_canonical_source_exists()
     check_no_em_dashes()
-    check_no_forbidden_word()
+    check_core_is_tool_neutral()
     check_links_resolve()
     check_adapters_in_sync()
 
@@ -129,7 +129,7 @@ def main() -> int:
         print("\n\n".join(failures))
         print(f"\n{len(failures)} check(s) failed.")
         return 1
-    print("AutoEvolve self-check passed: no em dashes, tool-neutral, links resolve, adapters in sync.")
+    print("AutoEvolve self-check passed: no em dashes, core stays tool-neutral, links resolve, adapters in sync.")
     return 0
 
 

@@ -324,8 +324,9 @@ copy of its core for tools that read rules inline, so if you change the mindset,
 python3 scripts/check.py
 ```
 
-It confirms there are no em dashes, no tool-specific product names, that every internal link
-resolves, and that the adapters have not drifted. CI runs the same check on every pull request.
+It confirms there are no em dashes, that the mindset core stays tool-neutral (tool names
+belong in `adapters/`), that every internal link resolves, and that the adapters have not
+drifted. CI runs the same check on every pull request.
 
 ## Attribution and license
 
