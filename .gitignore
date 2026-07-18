@@ -1,0 +1,11 @@
+# OS / editor cruft
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# This repo is a mindset plugin (docs + prompts), not a build target.
+# If you keep a local experiment journal while applying the mindset, ignore it here:
+JOURNAL.local.md
+*.local.md
