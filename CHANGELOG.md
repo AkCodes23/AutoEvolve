@@ -5,6 +5,17 @@ All notable changes to AutoEvolve are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pin a version when you install
 so a moving `main` never changes the mindset under you.
 
+## [Unreleased]
+
+### Added
+- A **runnable eval harness**: `python3 evals/run.py <scenario>` scores a scenario against
+  broken starter code and a separate grader, so the before/after effect of the mindset is
+  measurable, not just asserted. CI runs `evals/run.py --smoke` to keep the harness wired.
+
+### Changed
+- The eval scenarios moved from flat Markdown into runnable
+  `evals/scenarios/<name>/` directories (code under test, a separate grader, a task README).
+
 ## [0.1.0] - 2026-07-18
 
 Initial public release: a drop-in mindset plugin for AI coding agents.

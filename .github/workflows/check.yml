@@ -18,3 +18,5 @@ jobs:
           python-version: "3.12"
       - name: Run the AutoEvolve self-check
         run: python3 scripts/check.py
+      - name: Verify the eval harness runs
+        run: python3 evals/run.py --smoke

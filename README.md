@@ -322,7 +322,8 @@ docs/
   CHECKLIST.md                the operating checklist, standalone
   INSTALL.md                  how to add this to your repo
   SOURCES.md                  attribution and further reading
-evals/                        a methodology and scenarios for measuring the mindset's effect
+evals/                        runnable scenarios for measuring the mindset's effect
+  run.py                      grade a scenario: python3 evals/run.py 01_bugfix
 scripts/
   check.py                    the self-check (no em dashes, links, tool-neutral core, adapters)
   build_adapters.py           regenerate the adapters from adapters/_core.md
@@ -349,8 +350,10 @@ python3 scripts/check.py
 
 It confirms there are no em dashes, that the mindset core stays tool-neutral (tool names
 belong in `adapters/`), that every internal link resolves, and that the adapters are up to
-date with `adapters/_core.md`. Versions are tracked in [`CHANGELOG.md`](CHANGELOG.md); pin
-one when you install so a moving `main` never changes the mindset under you.
+date with `adapters/_core.md`. To measure the mindset's effect on a real task, run the
+scenarios in [`evals/`](evals/): `python3 evals/run.py --all`. Versions are tracked in
+[`CHANGELOG.md`](CHANGELOG.md); pin one when you install so a moving `main` never changes
+the mindset under you.
 
 ## Attribution and license
 
