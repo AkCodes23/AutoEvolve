@@ -3,6 +3,23 @@
 AutoEvolve is Markdown, not software. "Installing" it means putting the mindset where your
 AI coding tool will read it. Pick whichever applies; you can use more than one.
 
+## 0. One command (recommended)
+From the root of the repo you want to add the mindset to:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | sh
+```
+
+It writes `AGENTS.md` and, for every tool config directory it detects (`.cursor`,
+`.windsurf`, `.github`, `.claude`), that tool's adapter. It never overwrites a file you
+already have. To pin a released version instead of a moving `main`, set the ref:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/v0.1.0/install.sh | AUTOEVOLVE_REF=v0.1.0 sh
+```
+
+The manual options below do the same thing by hand.
+
 ## 1. The universal way: `AGENTS.md`
 Copy [`../AGENTS.md`](../AGENTS.md) into your repository root. Many agentic coding tools
 read a root `AGENTS.md` automatically, including **Codex** and **Antigravity** (Antigravity
@@ -54,5 +71,9 @@ directory, or just paste one into a chat when you want that specific step.
 ## Using it
 Once it's in place, tell your assistant to work "the AutoEvolve way," or run `/baseline`
 then `/evolve` on a task. Keep a `JOURNAL.md` (or local notes) as you go; the mindset
-leans on that external memory. The one file to keep current is `AGENTS.md`; the adapters
-just point at it.
+leans on that external memory. Copy-paste starters for `DIRECTION.md` and `JOURNAL.md` are
+in [`../templates/`](../templates/). The one file to keep current is `AGENTS.md`; the
+adapters just point at it.
+
+To confirm the mindset loaded, ask your agent "what is your operating loop?" It should
+describe the understand, signal, baseline, smallest-change, verify, keep-or-revert cycle.

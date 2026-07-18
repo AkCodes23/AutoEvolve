@@ -118,7 +118,8 @@ Autonomy is a slider, not a switch:
 - **Leave an audit trail** (small commits + the journal) so a human can inspect and roll
   back what autonomy produced.
 
-Match effort to the stakes:
+Match effort to the stakes. Infer the mode from the task, or take it from the human, who
+can just say "quick mode" or "deep mode":
 
 - **quick** (a one-line fix, a typo): understand, apply the ladder + guardrails, one
   verified change. No ceremony.
@@ -135,9 +136,11 @@ Match effort to the stakes:
 - **`DIRECTION.md`** (human-owned, read-only): a short file stating the objective, the
   signal (and where the read-only scorer lives), the guardrails, and the budget. You
   optimize *toward* it and never edit it to flatter the numbers. Missing or vague? Ask the
-  human to set it; do not invent the objective yourself. Template: [`commands/baseline.md`](commands/baseline.md).
+  human to set it; do not invent the objective yourself. Template:
+  [`templates/DIRECTION.md`](templates/DIRECTION.md).
 - **`JOURNAL.md`** (append-only): one line per experiment, *commit · signal · keep/revert ·
-  what changed · why.* Re-read it at the start of a session.
+  what changed · why.* Re-read it at the start of a session. Template:
+  [`templates/JOURNAL.md`](templates/JOURNAL.md).
 - **`evolve:` comments** mark deliberate corner-cuts with a ceiling and an upgrade path.
 - **Small commits** with clear messages are the experiment log; the current state is the
   best-known solution.
