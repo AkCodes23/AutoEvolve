@@ -5,8 +5,8 @@ place. Here is the reasoning behind it.
 
 ### Verification, not generation, is the real constraint
 You can produce edits infinitely fast, but you can only advance as fast as you can
-*confirm* an edit is correct. So the highest-leverage move is making the check cheap, 
-and small, reviewable diffs are the only way trust and speed compound instead of piling up
+*confirm* an edit is correct. So the highest-leverage move is making the check cheap;
+small, reviewable diffs are the only way trust and speed compound instead of piling up
 hidden risk. "Go faster" almost always means "verify faster," not "write more per step."
 
 ### Execution against an honest signal is the only reliable filter against fake progress
@@ -16,7 +16,7 @@ rather than into fooling the measurement. Treat every change as **false until a 
 it true**; a passing run is evidence, an argument is not.
 
 ### Reversibility removes the cost of failure
-With version control as the experiment store, HEAD always equal to the best-known state, 
+With version control as the experiment store (HEAD always equal to the best-known state),
 every experiment is free to try and free to undo. That's what lets you be bold on each
 step while never regressing the whole. A reverted experiment is not wasted; it ruled an
 option out.
@@ -32,7 +32,7 @@ codebase into a state where the *next* improvement is harder, so it isn't really
 Benchmarks saturate and measure the wrong thing; a single champion collapses into a local
 optimum. That's why you layer cheap hard-to-game checks with a never-drop canary and human
 spot-checks, prefer dense per-step signals over one end-of-run verdict, and keep a diverse
-pool of working ideas around, the stepping-stones a greedy search would delete are often
+pool of working ideas around: the stepping-stones a greedy search would delete are often
 the path to the real win.
 
 ### Division of labor scales
@@ -49,6 +49,6 @@ self-written and untrusted code as untrusted: sandbox it, keep secrets away from
 
 ### The artifact has to survive in the real repo
 An interpretable, debuggable, deployable change ships; an opaque one that merely scores
-well is a liability. And the payoff lives in *endurance*, dozens of compounding
-iterations, not one polished attempt, which is why the loop is built to keep going and to
-stay cheap per step.
+well is a liability. And the payoff lives in *endurance* (dozens of compounding iterations,
+not one polished attempt), which is why the loop is built to keep going and to stay cheap
+per step.

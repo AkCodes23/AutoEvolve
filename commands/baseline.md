@@ -24,7 +24,7 @@ can't measure.
    ```
 2. **Name the signal.** In one line, state how a change will be judged better: a specific
    test, a benchmark number, a lint/type check, or a runnable assertion. If several
-   qualities matter (correctness, speed, memory, size, readability), list them, track
+   qualities matter (correctness, speed, memory, size, readability), list them; track
    more than one so you don't silently regress one while chasing another.
 3. **Find or build the cheapest scorer.** Locate the repo's existing test/benchmark/lint
    command. If none scores the behavior you're about to touch, write the smallest honest

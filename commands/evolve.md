@@ -23,7 +23,7 @@ make real, measured progress instead of one big unverified change.
      still correct; else **revert** and note why.
    - Append one line to the journal: *commit · signal · keep/revert · what changed · why.*
    - Try to **simplify** the kept change further.
-   - If stuck, don't stop, re-read context, combine near-misses, or try a radical
+   - If stuck, don't stop: re-read context, combine near-misses, or try a radical
      alternative. Keep a second distinct approach alive if the problem has room.
-4. **Stop** at the goal, at a genuine terminal blocker, or before anything irreversible, 
-   and summarize: what changed, what the signal says now, what's next.
+4. **Stop** at the goal, at a genuine terminal blocker, or before anything irreversible.
+   Then summarize: what changed, what the signal says now, what's next.

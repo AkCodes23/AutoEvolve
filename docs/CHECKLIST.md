@@ -5,14 +5,14 @@ task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list
 
 ## Set up the objective
 - [ ] Read `DIRECTION.md` if it exists (human-owned, read-only). If it's missing or vague,
-      propose one and ask the human, don't silently invent the objective.
+      propose one and ask the human; don't silently invent the objective.
 - [ ] Identify the signal and its read-only source. Never edit, wrap, or "improve" the
-      scorer/harness, optimize the objective, never the ruler.
+      scorer/harness: optimize the objective, never the ruler.
 - [ ] Turn the stated goal into a concrete signal a *run* produces: a number, a
       red-to-green test, or an acceptance check you can confirm.
 - [ ] Locate or write the cheapest automatic check. Confirm a clean git tree with HEAD =
       current best. Record the baseline.
-- [ ] Reserve a never-drop **canary** case and hold out / rotate some inputs, a signal
+- [ ] Reserve a never-drop **canary** case and hold out / rotate some inputs: a signal
       you keep beating may mean you're overfitting it, not improving. (The signal's
       *definition* stays frozen; the canary and held-out inputs cross-check it.)
 
@@ -28,8 +28,8 @@ task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list
 - [ ] Make one small, targeted diff for one hypothesis; leave surrounding working code
       identical.
 - [ ] Fix bugs at the root cause: grep every caller, fix the shared function once.
-- [ ] Keep the tree clean before you edit, so a rejected change reverts with a simple
-      `git restore`, don't commit until it verifies.
+- [ ] Keep the tree clean before you edit, so a rejected change reverts cleanly; don't
+      commit until it verifies.
 
 ## Verify
 - [ ] Run cheap-first: parses/compiles → fast smoke test → full check. Abort a candidate
@@ -55,8 +55,8 @@ task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list
       one-liners.
 - [ ] Mark any deliberate corner-cut with an `evolve:` comment naming the ceiling and the
       upgrade path.
-- [ ] Don't pause to ask "should I continue?", refuel ideas (re-read sources, combine
-      near-misses, try a radical change). On a plateau, switch modes.
+- [ ] Don't pause to ask "should I continue?"; refuel ideas instead (re-read sources,
+      combine near-misses, try a radical change). On a plateau, switch modes.
 
 ## Never skip (guardrails)
 - [ ] Input validation at trust boundaries, error handling that prevents data loss,

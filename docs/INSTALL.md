@@ -33,16 +33,16 @@ but `.devin/rules/` is the preferred location.)
 ## 3. As a loadable skill
 If your agent supports a skills directory, copy
 [`../skills/autoevolve/SKILL.md`](../skills/autoevolve/SKILL.md) into it (keeping the
-`skills/autoevolve/SKILL.md` layout). The frontmatter tells the agent when to load it, 
+`skills/autoevolve/SKILL.md` layout). The frontmatter tells the agent when to load it:
 essentially, whenever it's about to change code in an existing repo.
 
 ## 4. As commands
-The templates in [`../commands/`](../commands/) are concrete actions, `evolve`,
-`baseline`, `simplify`, `review`, `journal`. Copy them into your tool's commands/prompts
+The templates in [`../commands/`](../commands/) are concrete actions: `baseline`,
+`evolve`, `simplify`, `review`, `journal`. Copy them into your tool's commands/prompts
 directory, or just paste one into a chat when you want that specific step.
 
 ## Using it
 Once it's in place, tell your assistant to work "the AutoEvolve way," or run `/baseline`
-then `/evolve` on a task. Keep a `JOURNAL.md` (or local notes) as you go, the mindset
+then `/evolve` on a task. Keep a `JOURNAL.md` (or local notes) as you go; the mindset
 leans on that external memory. The one file to keep current is `AGENTS.md`; the adapters
 just point at it.

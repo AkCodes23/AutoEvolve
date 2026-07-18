@@ -10,7 +10,7 @@ complexity. Deleting code is a win.
 
 **Do this:**
 
-1. **Confirm the signal is green first.** Simplification must not change behavior, run
+1. **Confirm the signal is green first.** Simplification must not change behavior; run
    the tests/scorer before you start so you have a baseline to protect.
 2. **Walk the ladder backward over the code:**
    - Is any of this **unused / speculative**? Delete it. (YAGNI)
@@ -24,7 +24,7 @@ complexity. Deleting code is a win.
      config knob used once)? Inline it.
 3. **Fix at the root.** If you're patching the same thing in several places, fix the
    shared function once and delete the duplicates.
-4. **Re-verify.** Run the signal again, behavior must be identical. Keep only the
+4. **Re-verify.** Run the signal again; behavior must be identical. Keep only the
    simplifications that stay green.
 5. **Guardrails stay.** Never delete input validation, error handling that prevents data
    loss, security checks, accessibility, or anything explicitly required. Minimalism is

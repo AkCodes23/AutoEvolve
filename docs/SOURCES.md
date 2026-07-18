@@ -44,7 +44,7 @@ competence (verify even "obvious" steps), no persistent memory (engineer externa
 curate context like RAM), gullibility (sandbox untrusted and self-written code). The evals
 crisis: distrust green benchmarks, layer cheap hard-to-game checks + rotating holdouts + a
 never-drop canary + human spot-checks. Prompts-as-programs (version, review, debug them).
-Resumable, revertible, interruptible runs. And the **autonomy slider**, build the
+Resumable, revertible, interruptible runs. And the **autonomy slider**: build the
 augmentation suit with a human on the leash, raising autonomy one notch at a time.
 *References: "Software Is Changing Again" (Software 1.0/2.0/3.0), the LLM-OS framing, and
 his talks/writing on agents and evals.*

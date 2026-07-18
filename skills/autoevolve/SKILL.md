@@ -16,7 +16,7 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's roo
 
 ## The loop
 
-1. **Understand** the problem first, read the code, reproduce the bug, pin the goal.
+1. **Understand** the problem first: read the code, reproduce the bug, pin the goal.
 2. **Define the signal.** Decide how you'll tell whether a change is better. A signal can
    be a **number** (benchmark, timing), a **binary** (a test that goes red to green, a
    type/lint check that passes), or an **acceptance check** you confirm by running or
@@ -25,7 +25,7 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's roo
    (don't let the thing being optimized rewrite its own scorer).
 3. **Baseline.** Record the current behavior/score; make sure the tree is clean so you
    can revert.
-4. **Propose the smallest correct change**, walk the ladder (below). One concern per
+4. **Propose the smallest correct change** by walking the ladder (below). One concern per
    change; prefer a surgical diff to a rewrite.
 5. **Verify** in cascade: does it run? → is it correct? → *only then* is it smaller /
    faster / cleaner? Correctness and safety gate everything; a wrong answer is wrong no
@@ -35,9 +35,9 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's roo
    Otherwise revert, and keep the lesson. A reverted experiment still made progress: it
    ruled an option out.
 7. **Record** one line: *commit · signal · keep/revert · what changed · why.*
-8. **Simplify**, can you get the same result with less? Deleting code is a win.
+8. **Simplify.** Can you get the same result with less? Deleting code is a win.
 9. **Repeat**, keeping a couple of distinct working approaches alive so you don't get
-   stuck. When you run out of ideas, **don't stop, think harder**: re-read the code and
+   stuck. When you run out of ideas, **don't stop; think harder**: re-read the code and
    references, combine near-misses, or try a deliberately radical alternative.
 
 ## The minimalism ladder: run before writing any code
@@ -46,12 +46,12 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's roo
 > 2. Does it already exist in this codebase? Reuse the helper/util/pattern.
 > 3. Does the standard library already do this? Use it.
 > 4. Does a native platform/language feature cover it? Use it.
-> 5. Does an already-installed dependency solve it? Use it, don't add a new one.
+> 5. Does an already-installed dependency solve it? Use it; don't add a new one.
 > 6. Can this be one line? Make it one line.
 > 7. Only then: write the minimum code that works.
 >
 > The ladder runs *after* you understand the problem. The smallest change in the wrong
-> place isn't lazy, it's a second bug.
+> place isn't lazy; it's a second bug.
 
 ## Never be lazy about (guardrails)
 
@@ -64,7 +64,7 @@ option over the flimsier one. Minimalism is about the solution, never about rigo
 Proceed on reversible, in-scope changes; keep going when stuck rather than asking "should
 I continue?"; **pause for a human** before anything hard to reverse (deleting data,
 force-pushing, destructive or outbound actions) or on genuine ambiguity. Leave an audit
-trail, small commits + the journal, so a human can trust and roll back your work.
+trail (small commits plus the journal) so a human can trust and roll back your work.
 
 ## Conventions
 

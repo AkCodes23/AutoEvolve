@@ -22,10 +22,10 @@ c3d4e5f | crash          | revert | (attempt) guard empty input                 
 
 The signal column is whatever tells "better" for this task: a number, a red-to-green test
 count, or an acceptance check. Conventions:
-- **status** is `keep` or `revert` (a crashed or broken run is just a `revert`, note the
+- **status** is `keep` or `revert` (a crashed or broken run is just a `revert`; note the
   reason in the *why* column).
 - Record the *actual* measured result, not your expectation.
-- Note deletions explicitly, a simplification that holds the signal is a win worth
+- Note deletions explicitly: a simplification that holds the signal is a win worth
   remembering.
 - Keep it append-only; don't rewrite history. The current git HEAD is the champion; the
   journal is the diverse record of ideas tried, including the best per niche.
