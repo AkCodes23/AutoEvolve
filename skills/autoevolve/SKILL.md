@@ -28,10 +28,11 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's
 5. **Verify** in cascade: does it run? → is it correct? → *only then* is it smaller /
    faster / cleaner? Correctness and safety gate everything; a wrong answer is wrong no
    matter how short. If the signal is noisy, take the **median** of a few runs.
-6. **Keep or revert.** Better and correct → commit it (new best). Worse or broken →
-   revert, and keep the lesson. A reverted experiment still made progress: it ruled an
-   option out.
-7. **Record** one line: *what changed · what the signal did · keep/revert · why.*
+6. **Keep or revert.** Keep if it's strictly better with no regression, *or*
+   neutral-but-simpler, *or* a deletion — and still correct; commit it (new best).
+   Otherwise revert, and keep the lesson. A reverted experiment still made progress: it
+   ruled an option out.
+7. **Record** one line: *commit · signal · keep/revert · what changed · why.*
 8. **Simplify** — can you get the same result with less? Deleting code is a win.
 9. **Repeat**, keeping a couple of distinct working approaches alive so you don't get
    stuck. When you run out of ideas, **don't stop — think harder**: re-read the code and

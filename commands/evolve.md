@@ -19,8 +19,9 @@ make real, measured progress instead of one big unverified change.
    - Propose the *smallest correct change* (walk the ladder in `AGENTS.md`). One concern.
    - Verify: smoke test → correctness → (only then) size/speed/clarity. Median of a few
      runs if noisy.
-   - **Keep** (commit) if better and correct; else **revert** and note why.
-   - Append one line to the journal: *change · signal delta · keep/revert · why.*
+   - **Keep** (commit) if it's better, *or* neutral-but-simpler, *or* a deletion — and
+     still correct; else **revert** and note why.
+   - Append one line to the journal: *commit · signal · keep/revert · what changed · why.*
    - Try to **simplify** the kept change further.
    - If stuck, don't stop — re-read context, combine near-misses, or try a radical
      alternative. Keep a second distinct approach alive if the problem has room.

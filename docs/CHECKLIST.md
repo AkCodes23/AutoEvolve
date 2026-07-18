@@ -12,6 +12,9 @@ task. This is the standalone version of the "what all to do" section in
 - [ ] Turn the stated goal into one or more numbers a *run* produces.
 - [ ] Locate or write the cheapest automatic check. Confirm a clean git tree with HEAD =
       current best. Record the baseline.
+- [ ] Reserve a never-drop **canary** case and hold out / rotate some inputs — a signal
+      you keep beating may mean you're overfitting it, not improving. (The signal's
+      *definition* stays frozen; the canary and held-out inputs cross-check it.)
 
 ## Understand before mutating
 - [ ] Read the surrounding code, trace the data flow, locate the root cause.
@@ -25,7 +28,8 @@ task. This is the standalone version of the "what all to do" section in
 - [ ] Make one small, targeted diff for one hypothesis; leave surrounding working code
       identical.
 - [ ] Fix bugs at the root cause: grep every caller, fix the shared function once.
-- [ ] Commit before running, so the experiment is a discrete revertible unit.
+- [ ] Keep the tree clean before you edit, so a rejected change reverts with a simple
+      `git restore` — don't commit until it verifies.
 
 ## Verify
 - [ ] Run cheap-first: parses/compiles → fast smoke test → full check. Abort a candidate
@@ -37,15 +41,15 @@ task. This is the standalone version of the "what all to do" section in
 
 ## Keep or revert
 - [ ] Keep only on a strict improvement with no forbidden regression — OR neutral-but-
-      simpler — OR a deletion.
+      simpler — OR a deletion. On keep, commit it: HEAD is now your best-known state.
 - [ ] Reject a tiny gain that adds hacky complexity.
-- [ ] Otherwise hard-revert to the last accepted state; never leave an unverified edit in
-      the tree.
+- [ ] Otherwise hard-revert (`git restore`) to the last accepted state; never leave an
+      unverified edit in the tree.
 - [ ] Note the best idea per niche (fastest / smallest / clearest) in the journal, and
       cross-pollinate between them.
 
 ## Record and continue
-- [ ] Append one journal row: commit / signal / status / what you tried.
+- [ ] Append one journal row: commit / signal / status (keep|revert) / what changed / why.
 - [ ] Leave one runnable assert-based check for non-trivial logic; none for trivial
       one-liners.
 - [ ] Mark any deliberate corner-cut with an `evolve:` comment naming the ceiling and the

@@ -9,8 +9,9 @@ read a root `AGENTS.md` automatically. If yours doesn't, keep the file there any
 a one-liner to your tool's own instructions: *"Follow the operating mindset in `AGENTS.md`."*
 
 ```bash
-# from your repo root
-curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/mindset-plugin/AGENTS.md
+# from your repo root — replace <branch> with wherever AGENTS.md lives
+# (the mindset-plugin branch for now; main once it's merged, or a release tag)
+curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/<branch>/AGENTS.md
 ```
 
 If your repo already has an `AGENTS.md`, append AutoEvolve's contents under a clear heading

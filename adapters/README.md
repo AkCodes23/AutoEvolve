@@ -18,5 +18,8 @@ If your tool isn't listed, use `AGENTS.md` directly — it's plain Markdown that
 read — or write a one-line adapter for your tool that says *"Follow the operating mindset
 in `AGENTS.md`"* and pastes in the condensed core from any file here.
 
-Keep the adapters thin. When the mindset changes, change `AGENTS.md`; the adapters only
-carry the short core so they rarely need editing.
+The three adapters (`cursor.mdc`, `windsurf.md`, `copilot-instructions.md`) carry the
+**same** condensed core — only their frontmatter differs. The depth lives in `AGENTS.md`;
+the adapters exist because some tools need the guidance inline. If you edit the core,
+update all three together (or trim them to a one-line pointer at `AGENTS.md` if your tool
+will follow it).

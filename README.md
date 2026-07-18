@@ -47,7 +47,7 @@ Nothing here is tool-specific magic; it's plain Markdown an AI reads and follows
 2. BASELINE it; commit a clean checkpoint.
 3. PROPOSE the smallest correct change (walk the ladder).
 4. VERIFY — smoke test, then correctness, then (only then) size/speed.
-5. KEEP if better & correct, else REVERT — and keep the lesson.
+5. KEEP if better (or neutral-but-simpler, or a deletion) & correct, else REVERT — keep the lesson.
 6. RECORD one line in the journal.
 7. SIMPLIFY — same result with less? Deleting is a win.
 8. REPEAT — stay diverse, don't stop when stuck (escalate), pause for humans on the

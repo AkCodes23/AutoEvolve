@@ -37,8 +37,9 @@ Read this file top to bottom once. Then keep it open and *act* on it.
 3. **Baseline it.** Know the current score/behavior, and commit a clean checkpoint.
 4. **Make the smallest correct change** (walk the ladder). One concern per change.
 5. **Verify against the signal.** Cheap check first, fuller check second.
-6. **Keep or revert.** Better *and* still correct → keep. Worse or broken → revert, and
-   keep the lesson. A reverted experiment is a success: it removed an option.
+6. **Keep or revert.** Keep if it's better — *or* neutral-but-simpler, *or* a deletion —
+   and still correct. Otherwise revert, and keep the lesson: a reverted experiment is a
+   success too, it removed an option.
 7. **Record one line** in the journal: what you tried, the result, keep/revert, why.
 8. **Simplify.** Can you get the same result with less? Deleting code is a win.
 9. **Stay diverse and don't stop when stuck.** Keep more than one working idea alive;
@@ -80,7 +81,7 @@ Everything else in this file elaborates this one cycle. Run it on every non-triv
    └────────────────────────────────┬─────────────┘                          │
                                      │                                        │
                  ┌───────────────────┴───────────────────┐                    │
-        better & correct?                          worse / broken?            │
+        meets the keep rule?                       no                         │
                  │                                         │                   │
    ┌─────────────▼─────────────┐            ┌──────────────▼───────────────┐   │
    │  5a. KEEP — commit it.     │            │  5b. REVERT — discard the     │   │
@@ -176,6 +177,12 @@ not flatteringly: count source and test code separately, probe safety with adver
 inputs, and if you use a model as a judge, use it only to catch a silently-dropped
 requirement, never as the primary score.
 
+**Watch for overfitting the signal.** A number you keep beating can mean you're
+overfitting the check, not improving the code. Reserve a small **canary** case that must
+*never* regress, and rotate or hold out some inputs the change hasn't seen. This doesn't
+contradict "keep the signal frozen": the signal's *definition* stays fixed and un-gameable;
+the canary and held-out inputs are how you cross-check that a rising score is real.
+
 ### Change method
 
 - Make one small edit that targets exactly the current concern.
@@ -207,6 +214,9 @@ requirement, never as the primary score.
 - Treat the repo as **external memory**: durable knowledge (what's been tried, what the
   conventions are, what "better" means here) belongs in files — this one, the journal —
   not only in a session that will be forgotten.
+- Treat the **instructions as programs**: the prompts and guidance an agent runs on —
+  including this mindset file and any command templates — are versioned, reviewable
+  artifacts. When the output is wrong, suspect and debug the instruction, not just the code.
 
 ## WHAT ALL to do — the operating checklist
 
@@ -293,12 +303,18 @@ Autonomy is a **slider**, not a switch. Match it to the stakes and reversibility
   or when a change touches something architecturally load-bearing.
 - **Always leave an audit trail** (small commits + the journal) so a human can inspect,
   trust, and roll back what autonomy produced.
+- **Match effort to the stakes.** Scale how hard you push — how many experiments, how deep
+  a rethink, how aggressively you simplify — to how much the task matters. A one-line fix
+  doesn't need a full evolutionary search; a load-bearing change deserves several rounds.
 
 ## Conventions in a repo that uses this mindset
 
+- **A direction file** (human-owned, read-only): a short file stating the objective, the
+  signal, the guardrails, and the budget. You optimize *toward* it; you never edit it to
+  make the numbers look good. If it's missing or vague, ask the human to set it.
 - **`evolve:` comments** mark deliberate corner-cuts with a ceiling and an upgrade path.
 - **A journal** (e.g. `JOURNAL.md`, or your own notes) holds one line per experiment:
-  *what changed · what the signal did · keep/revert · why.*
+  *commit · signal · keep/revert · what changed · why.*
 - **Small commits** with clear messages are the experiment log; the current state is the
   best-known solution.
 
