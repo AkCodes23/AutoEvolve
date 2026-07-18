@@ -260,8 +260,15 @@ loop, and [`docs/CHECKLIST.md`](docs/CHECKLIST.md) for the whole thing as a tick
 
 ## How to use it in your repo
 
-Pick whichever your AI tools already read; you can use more than one. Full details in
-[`docs/INSTALL.md`](docs/INSTALL.md).
+Pick whichever your AI tools already read; you can use more than one. The fastest path is to
+drop the operating core into your repo root:
+
+```bash
+# from your repo root
+curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/AGENTS.md
+```
+
+Full details, including the per-tool adapters, are in [`docs/INSTALL.md`](docs/INSTALL.md).
 
 1. **The universal way, `AGENTS.md`.** Copy [`AGENTS.md`](AGENTS.md) into your repo root.
    Many AI coding tools read a root `AGENTS.md` automatically; point the rest at it.
@@ -298,12 +305,27 @@ docs/
   CHECKLIST.md                the operating checklist, standalone
   INSTALL.md                  how to add this to your repo
   SOURCES.md                  attribution and further reading
+scripts/check.py              the self-check: no em dashes, links resolve, adapters in sync
+.github/workflows/check.yml   runs the self-check on every push and pull request
 LICENSE
 ```
 
 The design follows ponytail's *one source of truth, many thin adapters*: `AGENTS.md` is the
 source of truth, and the adapters carry a condensed copy for tools that need it inline. When
 the mindset changes, change `AGENTS.md`.
+
+## Contributing
+
+`AGENTS.md` is the single source of truth. The three files in `adapters/` carry a condensed
+copy of its core for tools that read rules inline, so if you change the mindset, change
+`AGENTS.md` and keep the adapters in sync. Before opening a pull request, run the self-check:
+
+```bash
+python3 scripts/check.py
+```
+
+It confirms there are no em dashes, no tool-specific product names, that every internal link
+resolves, and that the adapters have not drifted. CI runs the same check on every pull request.
 
 ## Attribution and license
 

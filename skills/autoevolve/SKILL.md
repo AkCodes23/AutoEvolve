@@ -7,6 +7,8 @@ description: >-
   simplify. Use when fixing a bug, adding a feature, optimizing, refactoring, or iterating
   toward a target in an existing repository, especially across many consecutive changes or
   with limited supervision.
+argument-hint: "[quick|default|deep]"
+license: MIT
 ---
 
 # AutoEvolve: evolve the code, don't just write it
