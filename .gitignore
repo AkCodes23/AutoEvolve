@@ -9,3 +9,7 @@
 # If you keep a local experiment journal while applying the mindset, ignore it here:
 JOURNAL.local.md
 *.local.md
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -12,8 +12,8 @@ can't measure.
 
 1. **Check for `DIRECTION.md`.** If the repo has this human-owned file, read it and treat
    it as read-only law. If it is missing and the goal is non-trivial, propose one (using
-   the template below) and ask the human to set direction rather than inventing the
-   objective yourself.
+   the template below, also in [`../templates/DIRECTION.md`](../templates/DIRECTION.md))
+   and ask the human to set direction rather than inventing the objective yourself.
 
    ```markdown
    # DIRECTION

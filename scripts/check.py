@@ -14,12 +14,6 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADAPTERS = [
-    "adapters/cursor.mdc",
-    "adapters/windsurf.md",
-    "adapters/copilot-instructions.md",
-    "adapters/claude.md",
-]
 
 failures: list[str] = []
 
@@ -90,29 +84,17 @@ def check_links_resolve() -> None:
         failures.append("Broken internal links:\n" + "\n".join(hits))
 
 
-def _body_after_frontmatter(text: str) -> str:
-    # Strip a leading YAML frontmatter block (--- ... ---) if present.
-    if text.startswith("---"):
-        end = text.find("\n---", 3)
-        if end != -1:
-            nl = text.find("\n", end + 1)
-            return text[nl + 1 :] if nl != -1 else ""
-    return text
+def check_adapters_generated() -> None:
+    # The adapters are generated from adapters/_core.md by scripts/build_adapters.py.
+    # Verify the committed files match, so a hand-edit that forgets the rebuild fails here.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import build_adapters
 
-
-def check_adapters_in_sync() -> None:
-    bodies = {}
-    for path in ADAPTERS:
-        full = os.path.join(ROOT, path)
-        if not os.path.exists(full):
-            failures.append(f"Missing adapter: {path}")
-            continue
-        bodies[path] = _body_after_frontmatter(open(full, encoding="utf-8").read()).strip()
-    uniq = set(bodies.values())
-    if len(uniq) > 1:
+    stale = build_adapters.build(check=True)
+    if stale:
         failures.append(
-            "Adapter condensed cores have drifted apart (their bodies must be identical; "
-            "edit AGENTS.md and re-sync every adapter):\n  " + "\n  ".join(bodies.keys())
+            "Adapters are stale vs adapters/_core.md. Run: python3 scripts/build_adapters.py\n  "
+            + "\n  ".join(stale)
         )
 
 
@@ -127,14 +109,14 @@ def main() -> int:
     check_no_em_dashes()
     check_core_is_tool_neutral()
     check_links_resolve()
-    check_adapters_in_sync()
+    check_adapters_generated()
 
     if failures:
         print("AutoEvolve self-check FAILED:\n")
         print("\n\n".join(failures))
         print(f"\n{len(failures)} check(s) failed.")
         return 1
-    print("AutoEvolve self-check passed: no em dashes, core stays tool-neutral, links resolve, adapters in sync.")
+    print("AutoEvolve self-check passed: no em dashes, core stays tool-neutral, links resolve, adapters generated from _core.md.")
     return 0
 
 

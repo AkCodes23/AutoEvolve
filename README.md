@@ -203,7 +203,8 @@ outbound actions), on genuine ambiguity in the goal, or when a change touches so
 architecturally load-bearing. Always leave an audit trail (small commits plus the journal)
 so a human can inspect and roll back what autonomy produced.
 
-Match effort to the stakes:
+Match effort to the stakes. Infer the mode from the task, or tell your agent explicitly
+("work in deep mode"):
 
 - **quick** (a one-line fix, a typo): understand, apply the ladder and guardrails, make one
   verified change. No ceremony.
@@ -246,10 +247,10 @@ A repo that adopts this mindset uses a few small conventions:
 
 - **`DIRECTION.md`** (human-owned, read-only): the objective, the signal (and where the
   read-only scorer lives), the guardrails, and the budget. The agent optimizes *toward* it
-  and never edits it. A template is in [`commands/baseline.md`](commands/baseline.md).
+  and never edits it. Copy-paste starter: [`templates/DIRECTION.md`](templates/DIRECTION.md).
 - **`JOURNAL.md`** (append-only): one line per experiment, *commit, signal, keep/revert,
-  what changed, why.* Re-read it at the start of a session. Template and examples in
-  [`commands/journal.md`](commands/journal.md).
+  what changed, why.* Re-read it at the start of a session. Copy-paste starter:
+  [`templates/JOURNAL.md`](templates/JOURNAL.md).
 - **`evolve:` comments** mark a deliberate corner-cut with its ceiling and upgrade path,
   e.g. `# evolve: O(n^2) scan, fine < 10k rows; use a hash index above that`.
 - **Small commits** with clear messages are the experiment log; the current state is the
@@ -260,15 +261,26 @@ loop, and [`docs/CHECKLIST.md`](docs/CHECKLIST.md) for the whole thing as a tick
 
 ## How to use it in your repo
 
-Pick whichever your AI tools already read; you can use more than one. The fastest path is to
-drop the operating core into your repo root:
+Pick whichever your AI tools already read; you can use more than one.
+
+The fastest path, from your repo root, auto-detects your tools and installs the right files
+(it never overwrites anything you already have):
 
 ```bash
-# from your repo root
+curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | sh
+```
+
+Or drop the operating core in by hand:
+
+```bash
 curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/AGENTS.md
 ```
 
-Full details, including the per-tool adapters, are in [`docs/INSTALL.md`](docs/INSTALL.md).
+Full details, including the per-tool adapters and how to pin a version, are in
+[`docs/INSTALL.md`](docs/INSTALL.md).
+
+**Confirm it is active:** ask your agent "what is your operating loop?" It should describe
+the understand, signal, baseline, smallest-change, verify, keep-or-revert cycle.
 
 1. **The universal way, `AGENTS.md`.** Copy [`AGENTS.md`](AGENTS.md) into your repo root.
    Many AI coding tools read a root `AGENTS.md` automatically; point the rest at it.
@@ -289,46 +301,56 @@ task, and keep a `JOURNAL.md` as you go.
 ```
 AGENTS.md                     the lean operating core (read/loaded every turn)
 README.md                     this file: the full explanation
+install.sh                    one-command installer (auto-detects your tools)
 skills/autoevolve/SKILL.md    the mindset as a loadable agent skill
 commands/                     invocable prompt templates
-  baseline.md                 define the signal + DIRECTION.md template + record the baseline
+  baseline.md                 define the signal and record the baseline
   evolve.md                   run the loop on a task
   simplify.md                 apply the ladder to shrink code
   review.md                   an over-engineering review
   journal.md                  the experiment-log format
 adapters/                     thin per-tool rule files, all pointing at AGENTS.md
+  _core.md                    the single source the four inline adapters are generated from
   claude.md                   Claude Code (copy to CLAUDE.md)
   cursor.mdc                  Cursor
   windsurf.md                 Windsurf
   copilot-instructions.md     GitHub Copilot
+templates/                    copy-paste starters: DIRECTION.md, JOURNAL.md
 docs/
   PRINCIPLES.md               why each rule exists, in depth
   EXAMPLE.md                  one task walked end to end through the loop
   CHECKLIST.md                the operating checklist, standalone
   INSTALL.md                  how to add this to your repo
   SOURCES.md                  attribution and further reading
-scripts/check.py              the self-check: no em dashes, links resolve, adapters in sync
+evals/                        a methodology and scenarios for measuring the mindset's effect
+scripts/
+  check.py                    the self-check (no em dashes, links, tool-neutral core, adapters)
+  build_adapters.py           regenerate the adapters from adapters/_core.md
 .github/workflows/check.yml   runs the self-check on every push and pull request
-LICENSE
+CONTRIBUTING.md   CHANGELOG.md   LICENSE
 ```
 
 The design follows ponytail's *one source of truth, many thin adapters*: `AGENTS.md` is the
-source of truth, and the adapters carry a condensed copy for tools that need it inline. When
-the mindset changes, change `AGENTS.md`.
+source of truth. The four inline adapters carry a condensed copy for tools that read rules
+inline, and they are **generated** from `adapters/_core.md` by `scripts/build_adapters.py`
+so they cannot drift. When the mindset changes, change `AGENTS.md` (and `_core.md` if the
+condensed core moves).
 
 ## Contributing
 
-`AGENTS.md` is the single source of truth. The three files in `adapters/` carry a condensed
-copy of its core for tools that read rules inline, so if you change the mindset, change
-`AGENTS.md` and keep the adapters in sync. Before opening a pull request, run the self-check:
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). In short: `AGENTS.md` is the single source of
+truth; the adapters are generated from `adapters/_core.md` (run `python3
+scripts/build_adapters.py` after editing it); and before opening a pull request, run the
+self-check that CI also runs:
 
 ```bash
 python3 scripts/check.py
 ```
 
 It confirms there are no em dashes, that the mindset core stays tool-neutral (tool names
-belong in `adapters/`), that every internal link resolves, and that the adapters have not
-drifted. CI runs the same check on every pull request.
+belong in `adapters/`), that every internal link resolves, and that the adapters are up to
+date with `adapters/_core.md`. Versions are tracked in [`CHANGELOG.md`](CHANGELOG.md); pin
+one when you install so a moving `main` never changes the mindset under you.
 
 ## Attribution and license
 
