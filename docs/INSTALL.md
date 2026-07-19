@@ -20,6 +20,20 @@ curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/v0.1.0/install
 
 The manual options below do the same thing by hand.
 
+## Claude Code: install as a plugin (recommended for Claude Code)
+Claude Code can install AutoEvolve as a proper plugin, no file copying. The repo is its own
+plugin marketplace, so from inside Claude Code:
+
+```
+/plugin marketplace add AkCodes23/AutoEvolve
+/plugin install autoevolve@autoevolve
+```
+
+That registers the skill (as `/autoevolve:autoevolve`) and the commands (`/autoevolve:baseline`,
+`/autoevolve:evolve`, and so on). Run `/plugin` for the interactive UI, or `/reload-plugins`
+to pick it up without restarting. To pin a version, install after the `v0.1.0` release is cut.
+If you would rather not use the plugin system, the `CLAUDE.md` adapter in option 2 still works.
+
 ## 1. The universal way: `AGENTS.md`
 Copy [`../AGENTS.md`](../AGENTS.md) into your repository root. Many agentic coding tools
 read a root `AGENTS.md` automatically, including **Codex** and **Antigravity** (Antigravity

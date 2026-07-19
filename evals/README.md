@@ -51,3 +51,25 @@ next change to `AGENTS.md`.
 - [`03_feature`](scenarios/03_feature/) - add pagination (signal: acceptance checks, including input validation).
 
 Each scenario's own README states its task, its signal, and what a good run looks like.
+
+## Profile the context: does the mindset help, or just add tokens?
+
+A long always-on prompt can make a model *worse*, not better, by diluting its attention. To
+check that on real models, `evals/profile.py` runs the same scenarios under three conditions
+that differ only in how much mindset text is in the system prompt: **control** (none),
+**core** (the ~25-line condensed core), and **full** (the whole `AGENTS.md`). It grades each
+output and reports the pass rate and the average prompt-token cost per condition.
+
+```bash
+export GROQ_API_KEY=...        # your key, read from the environment, never committed
+python3 evals/profile.py --selftest                     # offline: check the pipeline
+python3 evals/profile.py --runs 5                        # a small model (effect shows most here)
+python3 evals/profile.py --model llama-3.3-70b-versatile --runs 5
+```
+
+Read the result as a signal: if **full** does not beat **core**, the extra ~125 lines are
+not earning their tokens, and the always-on default should be the core. If **core** or
+**full** trail **control**, the context is hurting, which is the thing worth knowing before
+you ship a big instruction file. Uses Groq's OpenAI-compatible API (pick non-Qwen models if
+you use Qwen elsewhere). It never runs in CI, since it costs API calls.
+

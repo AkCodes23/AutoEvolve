@@ -279,6 +279,13 @@ curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/AGENTS.md
 Full details, including the per-tool adapters and how to pin a version, are in
 [`docs/INSTALL.md`](docs/INSTALL.md).
 
+**Claude Code users** can install it as a plugin instead of copying files:
+
+```
+/plugin marketplace add AkCodes23/AutoEvolve
+/plugin install autoevolve@autoevolve
+```
+
 **Confirm it is active:** ask your agent "what is your operating loop?" It should describe
 the understand, signal, baseline, smallest-change, verify, keep-or-revert cycle.
 
@@ -324,8 +331,10 @@ docs/
   SOURCES.md                  attribution and further reading
 evals/                        runnable scenarios for measuring the mindset's effect
   run.py                      grade a scenario: python3 evals/run.py 01_bugfix
+  profile.py                  A/B the mindset's effect on a model (control vs core vs full)
+.claude-plugin/               Claude Code plugin + marketplace manifests
 scripts/
-  check.py                    the self-check (no em dashes, links, tool-neutral core, adapters)
+  check.py                    the self-check (no em dashes, links, tool-neutral core, adapters, JSON)
   build_adapters.py           regenerate the adapters from adapters/_core.md
 .github/workflows/check.yml   runs the self-check on every push and pull request
 CONTRIBUTING.md   CHANGELOG.md   LICENSE

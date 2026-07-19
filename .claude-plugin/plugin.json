@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "autoevolve",
+  "displayName": "AutoEvolve",
+  "version": "0.1.0",
+  "description": "An operating mindset for AI coding agents: define an honest signal, make the smallest correct change, keep it only if it is verifiably better, and simplify relentlessly.",
+  "author": {
+    "name": "AkCodes23",
+    "url": "https://github.com/AkCodes23"
+  },
+  "homepage": "https://github.com/AkCodes23/AutoEvolve",
+  "repository": "https://github.com/AkCodes23/AutoEvolve",
+  "license": "MIT",
+  "keywords": ["ai-agents", "coding-agent", "mindset", "minimalism", "evals"]
+}
