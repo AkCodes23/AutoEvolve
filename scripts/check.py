@@ -9,6 +9,7 @@ commit, and let CI run it on every change:
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -104,12 +105,26 @@ def check_canonical_source_exists() -> None:
             failures.append(f"Missing required file: {required}")
 
 
+def check_plugin_json_valid() -> None:
+    # The Claude Code plugin manifests must be valid JSON or the install path breaks.
+    d = os.path.join(ROOT, ".claude-plugin")
+    if not os.path.isdir(d):
+        return
+    for name in sorted(os.listdir(d)):
+        if name.endswith(".json"):
+            try:
+                json.load(open(os.path.join(d, name), encoding="utf-8"))
+            except Exception as e:  # noqa: BLE001 - report any parse failure
+                failures.append(f"Invalid JSON in .claude-plugin/{name}: {e}")
+
+
 def main() -> int:
     check_canonical_source_exists()
     check_no_em_dashes()
     check_core_is_tool_neutral()
     check_links_resolve()
     check_adapters_generated()
+    check_plugin_json_valid()
 
     if failures:
         print("AutoEvolve self-check FAILED:\n")

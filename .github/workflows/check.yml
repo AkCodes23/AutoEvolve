@@ -20,3 +20,5 @@ jobs:
         run: python3 scripts/check.py
       - name: Verify the eval harness runs
         run: python3 evals/run.py --smoke
+      - name: Verify the profiler pipeline (offline)
+        run: python3 evals/profile.py --selftest

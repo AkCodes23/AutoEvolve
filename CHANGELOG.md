@@ -8,6 +8,13 @@ so a moving `main` never changes the mindset under you.
 ## [Unreleased]
 
 ### Added
+- **Claude Code plugin install path**: the repo is now its own plugin marketplace
+  (`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`), so Claude Code users can
+  `/plugin marketplace add AkCodes23/AutoEvolve` then `/plugin install autoevolve@autoevolve`
+  instead of copying files. The self-check now also validates the plugin JSON.
+- A **context profiler**, `evals/profile.py`: an A/B that measures whether loading the
+  mindset actually helps a model, comparing control vs the condensed core vs the full
+  `AGENTS.md` on the scenarios, and reporting pass rate and prompt-token cost per condition.
 - A **runnable eval harness**: `python3 evals/run.py <scenario>` scores a scenario against
   broken starter code and a separate grader, so the before/after effect of the mindset is
   measurable, not just asserted. CI runs `evals/run.py --smoke` to keep the harness wired.
