@@ -67,9 +67,9 @@ The signal went red to green with no regression. It meets the keep rule, so comm
 
 > An earlier attempt guarded at *one call site* instead of inside `search`. That turned the
 > target test green but left the other two callers still able to crash, so the full suite
-> caught nothing and the fix was in the wrong layer. That attempt was **reverted**
-> (`git restore . && git clean -fd`) and recorded, then replaced by the root fix above. A
-> reverted experiment is still progress: it ruled the shallow fix out.
+> caught nothing and the fix was in the wrong layer. That attempt was **reverted** by
+> restoring only the file changed in that experiment, then recorded and replaced by the root
+> fix above. A reverted experiment is still progress: it ruled the shallow fix out.
 
 ### 6. Journal
 

@@ -31,4 +31,4 @@ Initial public release: a drop-in mindset plugin for AI coding agents.
   dashes, tool-neutral core, links resolve, adapters generated, plugin JSON valid) and keep
   the eval harness wired.
 
-[0.1.0]: https://github.com/AkCodes23/AutoEvolve/releases/tag/v0.1.0
+[0.1.0]: https://github.com/AkCodes23/AutoEvolve/releases/tag/V0

@@ -13,3 +13,6 @@ JOURNAL.local.md
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Reproducible benchmark outputs can contain provider metadata and are published deliberately.
+evals/results/*.jsonl

@@ -1,0 +1,10 @@
+{
+  "tasks": [
+    {
+      "id": "demo_bugfix",
+      "source": "evals/scenarios/01_bugfix",
+      "code_file": "search.py",
+      "task": "Fix the empty-query crash. Preserve valid-query behavior and use the repository checks as the signal."
+    }
+  ]
+}
