@@ -5,6 +5,29 @@ All notable changes to AutoEvolve are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pin a version when you install
 so a moving `main` never changes the mindset under you.
 
+## [Unreleased]
+
+Trust release: safety-first defaults, honest installation, and a fail-closed evaluator. Not
+tagged yet; `V0` predates all of the changes below.
+
+### Changed
+- Installer no longer runs a remote script. `install.sh` runs only from a reviewed release
+  checkout (`--target`, `--dry-run`, `--profile core|full`), defaults to the compact core
+  profile, and never overwrites an existing file.
+- The revert step no longer recommends `git clean`. Destructive tree cleanup was removed from
+  `AGENTS.md` and the docs; a dirty tree you did not create is left untouched.
+- Installer reporting is accurate. A repeat install or a hand-merged file now reports "already
+  installed" and exits 0, and when adapters are written while `AGENTS.md` still needs a manual
+  merge, it says the adapters are already active instead of claiming nothing was activated.
+
+### Added
+- `evals/sandbox.py`, a fail-closed Docker boundary (no network, read-only mount, dropped
+  capabilities, no environment forwarding) for grading model-generated code. `evals/profile.py`
+  refuses to execute model output unless a digest-pinned sandbox image is configured.
+- Experimental Proof-tier scaffolding: `evals/agent_benchmark.py`, `docs/BENCHMARK.md`, and
+  `docs/COMPATIBILITY.md`. These describe and run toward a real agent benchmark; no held-out
+  suite has been run and no tool behavior has been verified yet.
+
 ## [0.1.0] - 2026-07-19
 
 Initial public release: a drop-in mindset plugin for AI coding agents.

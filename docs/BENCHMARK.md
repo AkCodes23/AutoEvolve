@@ -1,5 +1,9 @@
 # Benchmark protocol
 
+> Status: experimental (Proof-release tier). This is the protocol the agent benchmark will
+> follow, not results already obtained. `evals/agent_benchmark.py` is a runner scaffold, and
+> no held-out suite has been run yet. Nothing here should be cited as measured performance.
+
 AutoEvolve must be measured as an agent workflow, not as a one-shot code-completion prompt.
 The profiler is a compact prompt ablation. The agent benchmark measures the product claim:
 does the guidance help an agent make safer, verified repository changes?

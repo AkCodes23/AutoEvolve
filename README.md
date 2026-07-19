@@ -338,13 +338,13 @@ docs/
   EXAMPLE.md                  one task walked end to end through the loop
   CHECKLIST.md                the operating checklist, standalone
   INSTALL.md                  how to add this to your repo
-  BENCHMARK.md                release-grade agent benchmark protocol
-  COMPATIBILITY.md            supported-tool validation matrix
+  BENCHMARK.md                agent benchmark protocol (experimental, Proof-tier: not yet run)
+  COMPATIBILITY.md            tool matrix (install surfaces verified; behavior not yet tested)
   SOURCES.md                  attribution and further reading
 evals/                        runnable scenarios for measuring the mindset's effect
   run.py                      grade a scenario: python3 evals/run.py 01_bugfix
   profile.py                  sandboxed prompt A/B (control vs core vs full)
-  agent_benchmark.py          sandboxed benchmark runner for real tool-using agents
+  agent_benchmark.py          sandboxed benchmark runner (experimental, Proof-tier)
   sandbox.py                  fail-closed Docker execution boundary for generated code
 .claude-plugin/               Claude Code plugin + marketplace manifests
 scripts/

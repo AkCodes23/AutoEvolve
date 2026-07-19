@@ -184,7 +184,9 @@ def call_groq(model: str, messages: list, temperature: float, max_tokens: int = 
                     wait = float(retry_after) if retry_after else 2 * (attempt + 1)
                 except ValueError:
                     wait = 2 * (attempt + 1)
-                time.sleep(min(wait, 30) + 0.5)
+                # Clamp below by 0: a malformed negative Retry-After would otherwise reach
+                # time.sleep(negative), which raises and aborts the whole run mid-loop.
+                time.sleep(min(max(wait, 0), 30) + 0.5)
                 continue
             return None, None, last
         except Exception as e:  # noqa: BLE001 - report any transport error, keep going

@@ -67,6 +67,16 @@ CANONICAL_SKIPPED=0
 OTHER_SKIPPED=0
 WRITTEN=0
 
+# A re-run, or a target where the mindset was already merged by hand, is a finished install and
+# must not be reported as a failure. Anchor on the heading both profiles carry ("# AutoEvolve
+# mindset (condensed)" and "# AutoEvolve, the operating core"), and accept it at any heading
+# depth so a file merged under a sub-heading still counts. Prose that merely mentions the name
+# does not match.
+CANONICAL_PRESENT=0
+if [ -e "$TARGET_DIR/AGENTS.md" ] && grep -qE '^#+ AutoEvolve' "$TARGET_DIR/AGENTS.md" 2>/dev/null; then
+  CANONICAL_PRESENT=1
+fi
+
 install_file() {
   source_rel=$1
   destination=$2
@@ -123,9 +133,25 @@ if [ "$DRY_RUN" -eq 1 ]; then
   echo "Dry run complete. No files changed."
   exit 0
 fi
+if [ "$CANONICAL_SKIPPED" -eq 1 ] && [ "$CANONICAL_PRESENT" -eq 1 ]; then
+  echo "AGENTS.md already carries AutoEvolve; left untouched."
+  if [ "$WRITTEN" -eq 1 ]; then
+    echo "Tool adapters listed above were added alongside it."
+  fi
+  echo "Already installed. Nothing to merge."
+  exit 0
+fi
 if [ "$CANONICAL_SKIPPED" -eq 1 ]; then
-  echo "Manual merge required: AGENTS.md already exists in the target. AutoEvolve was not activated automatically." >&2
+  echo "Manual merge required: AGENTS.md already exists in the target and does not carry AutoEvolve." >&2
   echo "Review $SOURCE_DIR/$CANONICAL_SOURCE and merge it under a clear heading, then rerun --dry-run to inspect adapters." >&2
+  if [ "$WRITTEN" -eq 1 ]; then
+    # Say this plainly: the adapters above are live, so the mindset is already partly in effect
+    # for those tools even though AGENTS.md was not touched.
+    echo "Note: the tool adapters listed above WERE written and are already active for those tools." >&2
+    echo "Only AGENTS.md still needs merging." >&2
+  else
+    echo "Nothing was written; AutoEvolve is not active in this target." >&2
+  fi
   exit 2
 fi
 if [ "$OTHER_SKIPPED" -eq 1 ]; then
