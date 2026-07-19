@@ -161,6 +161,21 @@ def call_groq(model: str, messages: list, temperature: float, max_tokens: int = 
     return None, None, last
 
 
+def token_report() -> int:
+    """Print the always-on context cost of each condition. No network, no key."""
+    print("Context cost per condition (rough estimate, ~chars / 4):")
+    print(f"  {'condition':10} {'chars':>7} {'words':>7} {'~tokens':>8}")
+    for cond, path in CONDITIONS.items():
+        if path is None:
+            print(f"  {cond:10} {0:>7} {0:>7} {0:>8}")
+            continue
+        text = read_text(path)
+        print(f"  {cond:10} {len(text):>7} {len(text.split()):>7} {len(text) // 4:>8}")
+    print("\nThis is the cost half of the question (how many tokens you pay every turn).")
+    print("The accuracy half needs a model: run without --tokens (set GROQ_API_KEY).")
+    return 0
+
+
 def selftest() -> int:
     print("selftest: grading each scenario's starter through the extract+grade pipeline")
     ok = True
@@ -186,8 +201,11 @@ def main() -> int:
     ap.add_argument("--scenarios", default=",".join(sorted(TASKS)))
     ap.add_argument("--temperature", type=float, default=0.2)
     ap.add_argument("--selftest", action="store_true", help="offline check of the grading pipeline")
+    ap.add_argument("--tokens", action="store_true", help="print the context cost of each condition (no key needed)")
     args = ap.parse_args()
 
+    if args.tokens:
+        return token_report()
     if args.selftest:
         return selftest()
 
