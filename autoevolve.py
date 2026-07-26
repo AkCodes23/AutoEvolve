@@ -118,6 +118,20 @@ def cmd_setup(target: str, profile: str = "core") -> int:
     elif os.path.exists(os.path.join(target_abs, "go.mod")):
         detected = "go test ./..."
 
+    # Customize DIRECTION.md if template placeholder exists
+    direction_path = os.path.join(target_abs, "DIRECTION.md")
+    if os.path.exists(direction_path):
+        try:
+            with open(direction_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            if "{{TEST_SIGNAL}}" in content:
+                updated = content.replace("{{TEST_SIGNAL}}", detected)
+                with open(direction_path, "w", encoding="utf-8") as f:
+                    f.write(updated)
+                print(f"  [+] Customized DIRECTION.md test signal to: '{detected}'")
+        except Exception:
+            pass
+
     print(f"[autoevolve] Setup complete! Suggested test signal for DIRECTION.md: '{detected}'")
     return 0 if (rc_inst == 0 and rc_init == 0) else 1
 
@@ -134,6 +148,73 @@ def cmd_journal(target: str, commit: str, signal: str, action: str, changed: str
         f.write(entry)
     print(f"[autoevolve] Journal entry appended to {journal_path}:\n  {entry.strip()}")
     return 0
+
+
+def cmd_hooks(target: str) -> int:
+    """Install zero-dependency pre-commit hook into target repository."""
+    target_abs = os.path.abspath(target)
+    hooks_dir = os.path.join(target_abs, ".git", "hooks")
+    if not os.path.exists(hooks_dir):
+        print(f"Error: Target path '{target_abs}' is not a git repository root (no .git/hooks found).", file=sys.stderr)
+        return 66
+
+    hook_path = os.path.join(hooks_dir, "pre-commit")
+    script_content = (
+        "#!/bin/sh\n"
+        "# AutoEvolve pre-commit hook: enforces adapter checksum and invariant checks.\n"
+        "echo '[autoevolve pre-commit] Running invariant checks...'\n"
+        "if [ -f \"scripts/check.py\" ]; then\n"
+        "    python3 scripts/check.py || exit 1\n"
+        "fi\n"
+        "if [ -f \"scripts/build_adapters.py\" ]; then\n"
+        "    python3 scripts/build_adapters.py --check || exit 1\n"
+        "fi\n"
+        "echo '[autoevolve pre-commit] Checks passed.'\n"
+        "exit 0\n"
+    )
+
+    with open(hook_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(script_content)
+
+    try:
+        os.chmod(hook_path, 0o755)
+    except Exception:
+        pass
+
+    print(f"[autoevolve] Installed pre-commit hook: {hook_path}")
+    return 0
+
+
+def cmd_loop(target: str, cmd: str, message: str | None = None, auto_commit: bool = False) -> int:
+    """Automate interactive keep-or-revert experiment loop."""
+    target_abs = os.path.abspath(target)
+    if not os.path.exists(target_abs) or not os.path.isdir(target_abs):
+        print(f"Error: Target path '{target_abs}' is not a valid directory.", file=sys.stderr)
+        return 66
+
+    print(f"[autoevolve loop] Running signal verification: {cmd}")
+    run_quiet_script = os.path.join(SCRIPTS_DIR, "run_quiet.py")
+    res = subprocess.run([sys.executable, run_quiet_script, cmd], cwd=target_abs)
+
+    if res.returncode == 0:
+        print("\n======================================================================")
+        print(" [ PASS ] SIGNAL VERIFIED: Test / Benchmark Command Succeeded!")
+        print("======================================================================")
+        desc = message or f"kept experiment ({cmd} pass)"
+        cmd_journal(target_abs, commit="HEAD", signal=cmd, action="keep", changed=desc, why="Signal check passed")
+        if auto_commit:
+            print("[autoevolve loop] Auto-committing kept experiment to git...")
+            subprocess.run(["git", "add", "."], cwd=target_abs)
+            subprocess.run(["git", "commit", "-m", f"evolve: {desc}"], cwd=target_abs)
+        return 0
+    else:
+        print("\n======================================================================")
+        print(" [ FAIL ] SIGNAL REGRESSED: Test / Benchmark Command Failed!")
+        print("======================================================================")
+        print("[autoevolve loop] Performing clean git rollback (reverting modified files)...")
+        subprocess.run(["git", "checkout", "--", "."], cwd=target_abs)
+        cmd_journal(target_abs, commit="HEAD", signal=cmd, action="revert", changed=message or "failed hypothesis", why="Signal regressed")
+        return 1
 
 
 def main():
@@ -171,6 +252,17 @@ def main():
     p_journal.add_argument("--changed", required=True, help="Short summary of what changed")
     p_journal.add_argument("--why", required=True, help="Rationale for decision")
 
+    # hooks command
+    p_hooks = subparsers.add_parser("hooks", help="Install zero-dependency pre-commit hook into target repository")
+    p_hooks.add_argument("--target", required=True, help="Target project directory path")
+
+    # loop command
+    p_loop = subparsers.add_parser("loop", help="Automate interactive keep-or-revert experiment loop")
+    p_loop.add_argument("--target", required=True, help="Target project directory path")
+    p_loop.add_argument("--cmd", required=True, help="Test / benchmark verification command (e.g. 'pytest tests/')")
+    p_loop.add_argument("--message", help="Description of hypothesis / change")
+    p_loop.add_argument("--auto-commit", action="store_true", help="Automatically commit to git if signal passes")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -187,6 +279,10 @@ def main():
         return cmd_setup(args.target, args.profile)
     elif args.command == "journal":
         return cmd_journal(args.target, args.commit, args.signal, args.action, args.changed, args.why)
+    elif args.command == "hooks":
+        return cmd_hooks(args.target)
+    elif args.command == "loop":
+        return cmd_loop(args.target, args.cmd, args.message, args.auto_commit)
     return 0
 
 
