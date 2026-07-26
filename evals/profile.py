@@ -28,8 +28,10 @@ calls); it is an on-demand experiment.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import random
 import re
 import shutil
 import subprocess
@@ -39,12 +41,16 @@ import time
 import urllib.error
 import urllib.request
 
+from sandbox import SandboxUnavailable, ensure_ready, run_python
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCEN = os.path.join(ROOT, "evals", "scenarios")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 CONDITIONS = {
     "control": None,
+    "karpathy": os.path.join("evals", "competitors", "karpathy.md"),
+    "ponytail": os.path.join("evals", "competitors", "ponytail.md"),
     "core": os.path.join("adapters", "_core.md"),
     "full": "AGENTS.md",
 }
@@ -65,6 +71,25 @@ TASKS = {
         "return all items exactly as before. With page=N, return that page. Reject an invalid "
         "page (zero, negative, or non-integer)."
     ),
+    "04_refactor": (
+        "format_report([]) crashes on empty input. Fix format_report to return 'No data' "
+        "when empty, preserve summary stats for valid input, add a calculate_stats(data) helper "
+        "returning (total, average), and preserve get_summary(data)."
+    ),
+    "05_security": (
+        "Fix security vulnerabilities in user_auth.py: path traversal in get_user_file, "
+        "SQL injection in build_query, plaintext password check in authenticate, and "
+        "unrestricted file reading in get_config. Preserve valid behavior for valid inputs."
+    ),
+    "06_errorhandling": (
+        "Fix error handling issues in pipeline.py: input validation in process_records, "
+        "division by zero in calculate_average, format crashes in parse_date, and silent "
+        "error swallowing in write_output. Handle errors safely without breaking valid runs."
+    ),
+    "07_yagni": (
+        "Fix parse_tags(text) in tags.py to split comma-separated tags, strip surrounding "
+        "whitespace, and exclude empty tags. Keep the implementation minimal."
+    ),
 }
 
 BASE_INSTRUCTION = (
@@ -75,12 +100,16 @@ BASE_INSTRUCTION = (
 
 # Runs in a fresh interpreter per trial so module caching never leaks between conditions.
 _SCORER = (
-    "import sys, json, importlib.util, os\n"
+    "import sys, json, importlib.util, os, io, contextlib\n"
     "d = sys.argv[1]\n"
     "sys.path.insert(0, d)\n"
-    "spec = importlib.util.spec_from_file_location('grade', os.path.join(d, 'grade.py'))\n"
-    "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
-    "print(json.dumps([[n, bool(ok)] for n, ok, _ in m.checks()]))\n"
+    "buf = io.StringIO()\n"
+    "with contextlib.redirect_stdout(buf):\n"
+    "    spec = importlib.util.spec_from_file_location('grade', os.path.join(d, 'grade.py'))\n"
+    "    m = importlib.util.module_from_spec(spec)\n"
+    "    spec.loader.exec_module(m)\n"
+    "    results = [[n, bool(ok)] for n, ok, _ in m.checks()]\n"
+    "print(json.dumps(results))\n"
 )
 
 
@@ -98,26 +127,45 @@ def code_file(scenario: str) -> str:
 
 
 def extract_code(text: str) -> str:
-    blocks = re.findall(r"```[a-zA-Z0-9_+-]*\n(.*?)```", text, re.DOTALL)
-    return (blocks[-1] if blocks else text).strip("\n")
+    blocks = re.findall(r"```(?:[a-zA-Z0-9_+-]*\n)?(.*?)```", text, re.DOTALL)
+    if blocks:
+        # Pick the longest block if multiple exist, or the last non-empty one
+        filtered = [b.strip("\n") for b in blocks if b.strip()]
+        if filtered:
+            return filtered[-1]
+    return text.strip("\n")
 
 
-def grade_code(scenario: str, code: str) -> list[tuple[str, bool]] | None:
-    """Write `code` into a throwaway copy of the scenario and grade it. None on grader error."""
+def grade_code(
+    scenario: str, code: str, *, sandboxed: bool = True
+) -> tuple[list[tuple[str, bool]] | None, str | None]:
+    """Grade code in Docker, or trusted repository starters locally for the offline self-test."""
     src = os.path.join(SCEN, scenario)
     tmp = tempfile.mkdtemp(prefix="autoevolve_prof_")
     try:
         shutil.copy(os.path.join(src, "grade.py"), tmp)
         with open(os.path.join(tmp, code_file(scenario)), "w", encoding="utf-8") as f:
             f.write(code)
-        proc = subprocess.run(
-            [sys.executable, "-c", _SCORER, tmp], capture_output=True, text=True, timeout=60
-        )
+        if sandboxed:
+            proc = run_python(tmp, _SCORER, timeout=60)
+        else:
+            # Self-test input is repository-maintained starter code, never model output.
+            local = subprocess.run(
+                [sys.executable, "-I", "-B", "-c", _SCORER, tmp],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=tmp,
+                env={"PATH": os.environ.get("PATH", "")},
+            )
+            proc = local
         if proc.returncode != 0 or not proc.stdout.strip():
-            return None
-        return [(n, bool(ok)) for n, ok in json.loads(proc.stdout)]
-    except Exception:
-        return None
+            return None, (proc.stderr.strip() or f"grader exited {proc.returncode}")
+        return [(n, bool(ok)) for n, ok in json.loads(proc.stdout)], None
+    except SandboxUnavailable as exc:
+        raise
+    except Exception as exc:  # noqa: BLE001 - preserve the error for the benchmark report
+        return None, type(exc).__name__
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -130,19 +178,35 @@ def build_messages(condition_text: str | None, task: str, filename: str, code: s
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
-def call_groq(model: str, messages: list, temperature: float, max_tokens: int = 1400):
-    key = os.environ.get("GROQ_API_KEY")
-    if not key:
-        raise SystemExit("Set GROQ_API_KEY in your environment (do not commit it).")
+def call_groq(
+    model: str,
+    messages: list,
+    temperature: float,
+    max_tokens: int = 1400,
+    base_url: str | None = None,
+    api_key: str | None = None,
+):
+    endpoint = base_url or os.environ.get("OPENAI_BASE_URL") or GROQ_URL
+    key = api_key or os.environ.get("GROQ_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    if not key and "localhost" not in endpoint and "127.0.0.1" not in endpoint:
+        raise SystemExit("Set GROQ_API_KEY or OPENAI_API_KEY in environment, or specify --api-key / --base-url.")
+    key = key or "dummy-key"
     body = json.dumps(
         {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
     ).encode()
     req = urllib.request.Request(
-        GROQ_URL, data=body,
-        headers={"Authorization": f"Bearer {key}", "content-type": "application/json"},
+        endpoint, data=body,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "content-type": "application/json",
+            # Groq's edge (Cloudflare) rejects the default Python-urllib User-Agent
+            # with HTTP 403 (error 1010); any explicit UA gets through.
+            "User-Agent": "AutoEvolve-eval/1.0",
+        },
     )
     last = None
-    for attempt in range(3):
+    attempts = 6
+    for attempt in range(attempts):
         try:
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read())
@@ -152,7 +216,16 @@ def call_groq(model: str, messages: list, temperature: float, max_tokens: int = 
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}"
             if e.code in (429, 500, 502, 503):
-                time.sleep(2 * (attempt + 1))
+                # Honor Groq's Retry-After (seconds) when present; the free-tier limit is
+                # tokens-per-minute and replenishes continuously, so a short wait clears it.
+                retry_after = e.headers.get("retry-after") if e.headers else None
+                try:
+                    wait = float(retry_after) if retry_after else 2 * (attempt + 1)
+                except ValueError:
+                    wait = 2 * (attempt + 1)
+                # Clamp below by 0: a malformed negative Retry-After would otherwise reach
+                # time.sleep(negative), which raises and aborts the whole run mid-loop.
+                time.sleep(min(max(wait, 0), 30) + 0.5)
                 continue
             return None, None, last
         except Exception as e:  # noqa: BLE001 - report any transport error, keep going
@@ -182,9 +255,9 @@ def selftest() -> int:
     for scenario in sorted(TASKS):
         starter = read_text(os.path.join("evals", "scenarios", scenario, code_file(scenario)))
         wrapped = f"Here you go:\n```python\n{starter}\n```\n"
-        graded = grade_code(scenario, extract_code(wrapped))
+        graded, error = grade_code(scenario, extract_code(wrapped), sandboxed=False)
         if graded is None:
-            print(f"  [ERROR] {scenario}: grader failed to run (harness bug)")
+            print(f"  [ERROR] {scenario}: grader failed to run ({error or 'harness bug'})")
             ok = False
         else:
             passed = sum(1 for _, o in graded if o)
@@ -195,13 +268,18 @@ def selftest() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", action="append", help="Groq model id (repeatable). Avoid Qwen if you use it elsewhere.")
+    ap.add_argument("--model", action="append", help="Model ID (repeatable). Avoid Qwen if you use it elsewhere.")
+    ap.add_argument("--base-url", help="Custom OpenAI-compatible API endpoint (defaults to GROQ_URL or OPENAI_BASE_URL)")
+    ap.add_argument("--api-key", help="API key override (defaults to GROQ_API_KEY or OPENAI_API_KEY)")
     ap.add_argument("--runs", type=int, default=3, help="trials per (scenario, condition)")
-    ap.add_argument("--conditions", default="control,core,full")
+    ap.add_argument("--conditions", default="control,karpathy,ponytail,core,full")
     ap.add_argument("--scenarios", default=",".join(sorted(TASKS)))
     ap.add_argument("--temperature", type=float, default=0.2)
+    ap.add_argument("--seed", type=int, default=20260719, help="seed used to randomize trial order")
+    ap.add_argument("--output", help="write trial metadata as JSON Lines for reproducible reports")
     ap.add_argument("--selftest", action="store_true", help="offline check of the grading pipeline")
     ap.add_argument("--tokens", action="store_true", help="print the context cost of each condition (no key needed)")
+    ap.add_argument("--no-sandbox", action="store_true", help="run evaluation without Docker sandbox (for local environments without Docker)")
     args = ap.parse_args()
 
     if args.tokens:
@@ -212,42 +290,68 @@ def main() -> int:
     models = args.model or ["llama-3.1-8b-instant"]
     conditions = [c for c in args.conditions.split(",") if c]
     scenarios = [s for s in args.scenarios.split(",") if s]
-    rows = []  # (model, scenario, condition, trial, passed, prompt_tokens, error)
+    if args.runs < 1:
+        ap.error("--runs must be at least 1")
+    unknown_conditions = sorted(set(conditions) - set(CONDITIONS))
+    unknown_scenarios = sorted(set(scenarios) - set(TASKS))
+    if unknown_conditions or unknown_scenarios:
+        ap.error(f"unknown conditions={unknown_conditions}, scenarios={unknown_scenarios}")
+    if not args.no_sandbox:
+        try:
+            ensure_ready()
+        except SandboxUnavailable as exc:
+            ap.error(str(exc))
 
-    for model in models:
-        for scenario in scenarios:
-            filename = code_file(scenario)
-            starter = read_text(os.path.join("evals", "scenarios", scenario, filename))
-            task = TASKS[scenario]
-            for cond in conditions:
-                cond_text = read_text(CONDITIONS[cond]) if CONDITIONS[cond] else None
-                for trial in range(args.runs):
-                    msgs = build_messages(cond_text, task, filename, starter)
-                    content, tokens, err = call_groq(model, msgs, args.temperature)
-                    if err:
-                        rows.append((model, scenario, cond, trial, None, tokens, err))
-                        print(f"  {model} {scenario} {cond} #{trial}: API error {err}")
-                        continue
-                    graded = grade_code(scenario, extract_code(content))
-                    passed = bool(graded) and all(ok for _, ok in graded)
-                    rows.append((model, scenario, cond, trial, passed, tokens, None))
-                    print(f"  {model} {scenario} {cond} #{trial}: {'PASS' if passed else 'fail'}"
-                          f"  ({tokens} prompt tokens)")
+    jobs = [
+        (model, scenario, condition, trial)
+        for model in models
+        for scenario in scenarios
+        for condition in conditions
+        for trial in range(args.runs)
+    ]
+    random.Random(args.seed).shuffle(jobs)
+    rows = []
+    for model, scenario, cond, trial in jobs:
+        filename = code_file(scenario)
+        starter = read_text(os.path.join("evals", "scenarios", scenario, filename))
+        cond_text = read_text(CONDITIONS[cond]) if CONDITIONS[cond] else None
+        msgs = build_messages(cond_text, TASKS[scenario], filename, starter)
+        prompt_hash = hashlib.sha256(msgs[0]["content"].encode()).hexdigest()
+        content, tokens, error = call_groq(model, msgs, args.temperature, base_url=args.base_url, api_key=args.api_key)
+        outcome = "api_error" if error else "fail"
+        if not error:
+            graded, grade_error = grade_code(scenario, extract_code(content), sandboxed=not args.no_sandbox)
+            if grade_error:
+                outcome, error = "grader_error", grade_error
+            elif graded and all(ok for _, ok in graded):
+                outcome = "pass"
+        rows.append({
+            "model": model, "scenario": scenario, "condition": cond, "trial": trial,
+            "outcome": outcome, "prompt_tokens": tokens, "error": error,
+            "prompt_sha256": prompt_hash, "seed": args.seed,
+        })
+        detail = f" ({tokens} prompt tokens)" if tokens else ""
+        print(f"  {model} {scenario} {cond} #{trial}: {outcome}{detail}"
+              + (f" [{error}]" if error else ""))
 
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
     _report(models, scenarios, conditions, rows)
     return 0
 
 
 def _rate(rows) -> str:
-    graded = [r for r in rows if r[4] is not None]
-    if not graded:
+    if not rows:
         return "n/a"
-    passed = sum(1 for r in graded if r[4])
-    return f"{100 * passed / len(graded):3.0f}% ({passed}/{len(graded)})"
+    passed = sum(1 for r in rows if r["outcome"] == "pass")
+    errors = sum(1 for r in rows if r["outcome"] in {"api_error", "grader_error"})
+    return f"{100 * passed / len(rows):3.0f}% ({passed}/{len(rows)}, errors={errors})"
 
 
 def _avg_tokens(rows):
-    toks = [r[5] for r in rows if r[5]]
+    toks = [r["prompt_tokens"] for r in rows if r["prompt_tokens"]]
     return f"{sum(toks) // len(toks)}" if toks else "?"
 
 
@@ -259,14 +363,14 @@ def _report(models, scenarios, conditions, rows):
         print(f"\nmodel: {model}")
         print(f"  {'condition':10}  {'overall':16}  {'avg prompt tokens':18}")
         for cond in conditions:
-            sub = [r for r in rows if r[0] == model and r[2] == cond]
+            sub = [r for r in rows if r["model"] == model and r["condition"] == cond]
             print(f"  {cond:10}  {_rate(sub):16}  {_avg_tokens(sub):18}")
         print(f"\n  by scenario:")
         print("  " + " " * 14 + "  ".join(f"{c:>14}" for c in conditions))
         for scenario in scenarios:
             cells = []
             for cond in conditions:
-                sub = [r for r in rows if r[0] == model and r[1] == scenario and r[2] == cond]
+                sub = [r for r in rows if r["model"] == model and r["scenario"] == scenario and r["condition"] == cond]
                 cells.append(f"{_rate(sub):>14}")
             print(f"  {scenario:14}" + "  ".join(cells))
     print("\nRead it like a signal: if 'full' does not beat 'core', the extra ~125 lines are")

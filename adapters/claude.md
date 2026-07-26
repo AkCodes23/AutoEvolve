@@ -1,26 +1,29 @@
+<!-- AutoEvolve-Core -->
 # AutoEvolve mindset (condensed)
 
-Full version: `AGENTS.md`. Work in small, verified steps: evolve the code, don't just
-write it.
+<autoevolve_mindset>
+  <role>Work in small, verified steps: evolve the code, don't just write it. Max 10 loops per session before human check-in.</role>
+  
+  <loop>
+    0. Explore & Understand scope/codebase -> 1. Define frozen signal -> 2. Baseline HEAD -> 3. Smallest diff hypothesis -> 4. Verify cheapest check first -> 5. Keep if better/simpler/deletion, else revert (delete untracked experiment files) -> 6. Journal 1-line -> 7. Simplify -> 8. Repeat. In deep mode, use `scripts/branch.py` for population branches.
+  </loop>
 
-**The loop:** understand → define an honest signal for "better" → baseline it →
-smallest correct change (one hypothesis, one diff) → verify (does it run? is it correct?
-only then is it smaller/faster?) → **keep** if strictly better with no regression, or
-neutral-but-simpler, or a deletion; else **revert** and keep the lesson → journal one line
-→ simplify → repeat. Don't stop when stuck; escalate.
+  <minimalism_ladder>
+    1. Need it at all? (YAGNI) -> 2. Reuse in codebase -> 3. Use Stdlib -> 4. Native platform feature -> 5. Existing dependency -> 6. Single line -> 7. Minimum production code.
+  </minimalism_ladder>
 
-**Before writing any code, walk the ladder and stop at the first rung that holds:**
-1. Need it at all? (YAGNI) 2. Already in this codebase? Reuse it. 3. Standard library
-does it? Use it. 4. Native platform feature? Use it. 5. Already-installed dependency? Use
-it. 6. One line? Make it one line. 7. Only then: the minimum code that works.
+  <guardrails>
+    - Context verification before editing.
+    - Input validation at trust boundaries.
+    - Categorized error handling with timeouts.
+    - Architectural isolation & async/concurrency safety.
+    - Testing obligations (unit/integration/negative).
+    - Security: Guard against injection, path traversal, authz flaws.
+    - Save context: Use `python scripts/run_quiet.py -- <cmd>` for verbose command output.
+    - Optimize objective, never the scorer. Gate correctness before brevity.
+  </guardrails>
 
-**Rules:** Treat every change as a hypothesis that is false until a run proves it true; read the
-real output, not your expectation. Keep diffs small and reviewable. Fix bugs at the root
-(grep every caller). Optimize the objective, never the scorer. Track more than one metric.
-
-**Never be lazy about:** input validation at trust boundaries, error handling that
-prevents data loss, security, accessibility, and anything explicitly requested.
-
-**Autonomy:** proceed on reversible, in-scope changes; pause for a human before anything
-hard to reverse (deleting data, force-push, destructive/outbound actions) or on genuine
-ambiguity. Leave an audit trail (small commits + a journal).
+  <autonomy>
+    Proceed on reversible in-scope changes. Pause for human on data deletion, force-push, outbound actions, load-bearing architecture, or 10 loops.
+  </autonomy>
+</autoevolve_mindset>

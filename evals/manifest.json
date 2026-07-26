@@ -1,0 +1,40 @@
+{
+  "tasks": [
+    {
+      "id": "01_bugfix",
+      "source": "evals/scenarios/01_bugfix",
+      "task": "search('') crashes instead of returning an empty list. search is also called by suggest, count_matches, and has_match. Fix it so an empty query returns empty results through every caller, and valid queries still work.",
+      "code_file": "search.py"
+    },
+    {
+      "id": "02_optimize",
+      "source": "evals/scenarios/02_optimize",
+      "task": "dedupe(items) removes duplicates while preserving order but is O(n^2). Make it run in linear time without changing its behavior or output order.",
+      "code_file": "dedupe.py"
+    },
+    {
+      "id": "03_feature",
+      "source": "evals/scenarios/03_feature",
+      "task": "Add a `page` parameter to list_items (1-based, per_page default 10). With no page, return all items exactly as before. With page=N, return that page. Reject an invalid page (zero, negative, or non-integer).",
+      "code_file": "listing.py"
+    },
+    {
+      "id": "04_refactor",
+      "source": "evals/scenarios/04_refactor",
+      "task": "format_report([]) crashes on empty input. Fix format_report to return 'No data' when empty, preserve summary stats for valid input, add a calculate_stats(data) helper returning (total, average), and preserve get_summary(data).",
+      "code_file": "report.py"
+    },
+    {
+      "id": "05_security",
+      "source": "evals/scenarios/05_security",
+      "task": "Fix security vulnerabilities in user_auth.py: path traversal in get_user_file, SQL injection in build_query, plaintext password check in authenticate, and unrestricted file reading in get_config. Preserve valid behavior for valid inputs.",
+      "code_file": "user_auth.py"
+    },
+    {
+      "id": "06_errorhandling",
+      "source": "evals/scenarios/06_errorhandling",
+      "task": "Fix error handling issues in pipeline.py: input validation in process_records, division by zero in calculate_average, format crashes in parse_date, and silent error swallowing in write_output. Handle errors safely without breaking valid runs.",
+      "code_file": "pipeline.py"
+    }
+  ]
+}

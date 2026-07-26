@@ -1,8 +1,8 @@
 # Evals
 
 The mindset preaches "define a signal and measure." This folder turns that on AutoEvolve
-itself: a **runnable** way to check whether the mindset actually changes an agent's behavior
-for the better, instead of just asserting it does.
+itself. It contains a compact smoke harness, a prompt ablation profiler, and a protocol for
+measuring real tool-using agents without mistaking a one-shot completion for the product.
 
 Each scenario in [`scenarios/`](scenarios/) ships **broken starter code** plus a grader that
 is kept **separate** from the code under test (the ruler stays out of the thing it measures).
@@ -25,8 +25,8 @@ The A/B for each scenario:
    scenario's code and let it work. Re-run the grader. It should pass.
 3. **Control (optional):** do the same in a repo **without** AutoEvolve loaded, and compare
    how the two runs behaved on the rubric below.
-4. Repeat a few times and compare the **medians**: best-of-N is vanity, the median is the
-   truth.
+4. Repeat using randomized order and report every attempted trial. See
+   [`../docs/BENCHMARK.md`](../docs/BENCHMARK.md) for the release-grade protocol.
 
 ## Rubric (score each run 0, 1, or 2)
 
@@ -52,6 +52,27 @@ next change to `AGENTS.md`.
 
 Each scenario's own README states its task, its signal, and what a good run looks like.
 
+## Benchmark a tool-using agent
+
+`agent_benchmark.py` gives an external agent a disposable repository checkout, the same
+task file, and one randomized condition at a time. It writes `AGENTS.md` only for the core
+and full conditions, keeps the grader outside the agent workspace, and grades the resulting
+code in the Docker sandbox. The runner command is executed without a shell and is your
+explicit authorization to invoke that agent locally.
+
+```bash
+export AUTOEVOLVE_EVAL_IMAGE='python:3.12-alpine@sha256:<verified-digest>'
+python3 evals/agent_benchmark.py \
+  --manifest evals/agent_manifest.example.json \
+  --runner 'your-agent-command --task TASK.md' \
+  --runs 10 \
+  --output evals/results/local-agent-benchmark.jsonl
+```
+
+The example manifest uses a public starter task only to prove the runner works. Do not use it
+to support a product-performance claim. Define held-out tasks and reporting thresholds using
+[`../docs/BENCHMARK.md`](../docs/BENCHMARK.md).
+
 ## Profile the context: does the mindset help, or just add tokens?
 
 A long always-on prompt can make a model *worse*, not better, by diluting its attention. To
@@ -61,15 +82,22 @@ that differ only in how much mindset text is in the system prompt: **control** (
 output and reports the pass rate and the average prompt-token cost per condition.
 
 ```bash
+# Pull and independently verify an immutable Python image digest first.
+export AUTOEVOLVE_EVAL_IMAGE='python:3.12-alpine@sha256:<verified-digest>'
 export GROQ_API_KEY=...        # your key, read from the environment, never committed
 python3 evals/profile.py --selftest                     # offline: check the pipeline
 python3 evals/profile.py --runs 5                        # a small model (effect shows most here)
-python3 evals/profile.py --model llama-3.3-70b-versatile --runs 5
+python3 evals/profile.py --model llama-3.3-70b-versatile --runs 10 --output results.jsonl
 ```
 
 Read the result as a signal: if **full** does not beat **core**, the extra ~125 lines are
 not earning their tokens, and the always-on default should be the core. If **core** or
 **full** trail **control**, the context is hurting, which is the thing worth knowing before
-you ship a big instruction file. Uses Groq's OpenAI-compatible API (pick non-Qwen models if
-you use Qwen elsewhere). It never runs in CI, since it costs API calls.
+you ship a big instruction file. Model output is evaluated only in a no-network Docker
+sandbox with a read-only mount, no inherited environment, no Linux capabilities, and strict
+resource limits. The profiler fails closed if Docker or the digest-pinned image is missing.
+It randomizes trial order, records a seed and prompt hash, and includes API/grader failures
+in the denominator. Uses Groq's OpenAI-compatible API and never runs in CI because it costs
+API calls. It remains a prompt ablation, not evidence that an interactive coding agent has
+followed the full loop; use the benchmark protocol for that claim.
 

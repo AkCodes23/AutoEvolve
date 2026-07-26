@@ -3,22 +3,26 @@
 AutoEvolve is Markdown, not software. "Installing" it means putting the mindset where your
 AI coding tool will read it. Pick whichever applies; you can use more than one.
 
-## 0. One command (recommended)
-From the root of the repo you want to add the mindset to:
+## 0. Reviewed release installer (recommended)
+
+Do not pipe a moving remote script into a shell. Download a specific release, review it, then
+run the installer against the target repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | sh
+git clone --depth 1 --branch V0 https://github.com/AkCodes23/AutoEvolve.git
+cd AutoEvolve
+./install.sh --target /path/to/your/repo --dry-run
+./install.sh --target /path/to/your/repo
 ```
 
-It writes `AGENTS.md` and, for every tool config directory it detects (`.cursor`,
-`.windsurf`, `.github`, `.claude`), that tool's adapter. It never overwrites a file you
-already have. To pin a released version instead of a moving `main`, set the ref:
+The installer defaults to the compact **core** profile in `AGENTS.md`; use
+`--profile full` only when you deliberately want the longer operating manual. It also writes
+tool adapters for detected config directories. It never overwrites existing files. If
+`AGENTS.md` already exists, it exits with manual merge guidance rather than claiming
+installation completed. Use the release tag shown on the project's releases page instead of a
+moving branch; this checkout's published tag is `V0`.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/v0.1.0/install.sh | AUTOEVOLVE_REF=v0.1.0 sh
-```
-
-The manual options below do the same thing by hand.
+The manual options below are appropriate when you need to merge with an existing rules file.
 
 ## Claude Code: install as a plugin (recommended for Claude Code)
 Claude Code can install AutoEvolve as a proper plugin, no file copying. The repo is its own
@@ -31,23 +35,25 @@ plugin marketplace, so from inside Claude Code:
 
 That registers the skill (as `/autoevolve:autoevolve`) and the commands (`/autoevolve:baseline`,
 `/autoevolve:evolve`, and so on). Run `/plugin` for the interactive UI, or `/reload-plugins`
-to pick it up without restarting. To pin a version, install after the `v0.1.0` release is cut.
+to pick it up without restarting. Pin the plugin to an immutable release tag when your tool
+supports that capability.
 If you would rather not use the plugin system, the `CLAUDE.md` adapter in option 2 still works.
 
 ## 1. The universal way: `AGENTS.md`
-Copy [`../AGENTS.md`](../AGENTS.md) into your repository root. Many agentic coding tools
-read a root `AGENTS.md` automatically, including **Codex** and **Antigravity** (Antigravity
-reads it natively as of v1.20.3), so for those tools this single file is the whole install.
-If your tool doesn't read `AGENTS.md`, keep the file there anyway and add a one-liner to
-your tool's own instructions: *"Follow the operating mindset in `AGENTS.md`."*
+Copy the compact core into your repository root. Many agentic coding tools read a root
+`AGENTS.md` automatically, including **Codex** and **Antigravity** (Antigravity reads it
+natively as of v1.20.3), so for those tools this single file is the whole install. If your
+tool doesn't read `AGENTS.md`, keep the file there anyway and add a one-liner to your tool's
+own instructions: *"Follow the operating mindset in `AGENTS.md`."*
 
 ```bash
-# from your repo root
-curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/AGENTS.md
+# from your repo root, after reviewing a release checkout
+cp /path/to/AutoEvolve/adapters/_core.md ./AGENTS.md
 ```
 
-If your repo already has an `AGENTS.md`, append AutoEvolve's contents under a clear heading
-rather than overwriting your existing instructions.
+Use `AGENTS.md` from the release checkout instead only when you deliberately want the full
+manual on every agent turn. If your repo already has an `AGENTS.md`, append the selected
+profile under a clear heading rather than overwriting your existing instructions.
 
 ## 2. As tool-native rules
 Some tools read their own instruction file rather than `AGENTS.md`. Copy the thin adapter

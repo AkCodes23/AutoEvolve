@@ -43,9 +43,9 @@ task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list
 - [ ] Keep only on a strict improvement with no forbidden regression, OR neutral-but-
       simpler, OR a deletion. On keep, commit it: HEAD is now your best-known state.
 - [ ] Reject a tiny gain that adds hacky complexity.
-- [ ] Otherwise hard-revert to the last accepted state (`git restore . && git clean -fd`,
-      which also drops any new files; or `git stash`); never leave an unverified edit in
-      the tree.
+- [ ] Otherwise revert **only the experiment's known files** after inspecting the list.
+      Never run `git clean` or discard a dirty tree you did not create. Use a dedicated
+      worktree when an experiment may create many files or affect a load-bearing area.
 - [ ] Note the best idea per niche (fastest / smallest / clearest) in the journal, and
       cross-pollinate between them.
 

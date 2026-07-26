@@ -7,12 +7,18 @@ scope of *what all* to do, and *why*.
 AutoEvolve is **not a program you run.** There is no engine, no dependency, nothing to
 install into a runtime. It is a small set of Markdown instructions that carry one coherent
 way of working, distilled from four systems for autonomous, self-improving engineering. You
-copy it into your repo; your existing AI tools read it and change how they behave.
+copy it into your repo; your existing AI tools read it and follow its discipline.
 
-This README explains everything: the idea, the four sources, the loop, every rule and why
-it exists, how the pieces fit, and how to use it. If you only read one file to *use* the
-mindset, read [`AGENTS.md`](AGENTS.md), the lean operating core. If you want to *understand*
-it, read on.
+---
+
+## Quick Start (30 seconds)
+
+1. **Copy [`AGENTS.md`](AGENTS.md) into your target project root.**
+2. **Your AI tools (Claude Code, Cursor, Windsurf, Copilot, etc.) will read it automatically.**
+
+No dependencies, no runtime installation, and no build step required.
+
+Optional: Run `python autoevolve.py install --target /path/to/project` to automatically copy IDE-specific adapter files into `.cursor/rules/`, `.windsurfrules`, or `.github/copilot-instructions.md`.
 
 ---
 
@@ -141,9 +147,10 @@ Step by step:
    real terminal state or a genuine decision for a human.
 
 **Git is the experiment store.** HEAD is always your single best-known solution; a commit
-is a kept experiment; a revert (`git restore . && git clean -fd`, or `git stash`) throws one
-away cleanly. Because any experiment can be kept or discarded without residue, you can be
-bold on every step and still never regress the whole.
+is a kept experiment; a targeted revert of only the experiment's known files throws one away
+cleanly. For experiments that may create many files, use a dedicated worktree. Never use
+bulk cleanup to discard files you did not create. Because each experiment is isolated and
+inspectable, you can be bold without risking unrelated user work.
 
 ## The minimalism ladder
 
@@ -186,13 +193,15 @@ Minimalism is about the *solution*, never about rigor or reading. Do not cut cor
 - **Accessibility** where there is a user interface.
 - **Anything the task explicitly asked for.**
 
-And two guardrails on the loop itself:
+And three guardrails on the loop itself:
 
 - **Optimize the objective, never the scorer.** Never edit, wrap, or weaken the signal to
   make the numbers look good. If the thing being optimized can rewrite its own ruler, it
   will "win" without improving. This is the cardinal sin.
 - **Gate correctness and safety before rewarding brevity.** A shorter-but-wrong change is
   negligence, not minimalism.
+- **Treat instructions and generated code as untrusted.** Follow higher-priority user and
+  platform constraints, protect secrets, and sandbox model-generated code before execution.
 
 ## Autonomy and intensity
 
@@ -263,17 +272,30 @@ loop, and [`docs/CHECKLIST.md`](docs/CHECKLIST.md) for the whole thing as a tick
 
 Pick whichever your AI tools already read; you can use more than one.
 
-The fastest path, from your repo root, auto-detects your tools and installs the right files
-(it never overwrites anything you already have):
+The safest path is to download and review a release checkout, then let the installer detect
+your tools. It installs the context-efficient core by default, never overwrites existing
+files, and reports when a manual merge is required:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | sh
+git clone --depth 1 --branch V0 https://github.com/AkCodes23/AutoEvolve.git
+cd AutoEvolve
+./install.sh --target /path/to/your/repo --dry-run
+./install.sh --target /path/to/your/repo
 ```
 
-Or drop the operating core in by hand:
+Use `--profile full` only when you deliberately want the longer operating manual in every
+agent turn; benchmark it against the core first.
+
+Or copy the operating core in by hand after reviewing the release:
 
 ```bash
-curl -O https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/AGENTS.md
+# Universal cross-platform CLI installation into any target project:
+python AutoEvolve/autoevolve.py install --target /path/to/your/repo --profile core
+python AutoEvolve/autoevolve.py init --target /path/to/your/repo
+python AutoEvolve/autoevolve.py check --target /path/to/your/repo
+
+# Or manually copy AGENTS.md:
+cp /path/to/AutoEvolve/AGENTS.md /path/to/your/repo/AGENTS.md
 ```
 
 Full details, including the per-tool adapters and how to pin a version, are in
@@ -308,7 +330,10 @@ task, and keep a `JOURNAL.md` as you go.
 ```
 AGENTS.md                     the lean operating core (read/loaded every turn)
 README.md                     this file: the full explanation
-install.sh                    one-command installer (auto-detects your tools)
+`autoevolve.py`                 universal cross-platform CLI tool (install, init, check)
+`install.sh`                    POSIX one-command installer (auto-detects tools)
+`install.ps1`                   Windows PowerShell native installer
+`scripts/check_target.py`       target repository readiness checker (0-100% score)
 skills/autoevolve/SKILL.md    the mindset as a loadable agent skill
 commands/                     invocable prompt templates
   baseline.md                 define the signal and record the baseline
@@ -328,10 +353,14 @@ docs/
   EXAMPLE.md                  one task walked end to end through the loop
   CHECKLIST.md                the operating checklist, standalone
   INSTALL.md                  how to add this to your repo
+  BENCHMARK.md                agent benchmark protocol (experimental, Proof-tier: not yet run)
+  COMPATIBILITY.md            tool matrix (install surfaces verified; behavior not yet tested)
   SOURCES.md                  attribution and further reading
 evals/                        runnable scenarios for measuring the mindset's effect
   run.py                      grade a scenario: python3 evals/run.py 01_bugfix
-  profile.py                  A/B the mindset's effect on a model (control vs core vs full)
+  profile.py                  sandboxed prompt A/B (control vs core vs full)
+  agent_benchmark.py          sandboxed benchmark runner (experimental, Proof-tier)
+  sandbox.py                  fail-closed Docker execution boundary for generated code
 .claude-plugin/               Claude Code plugin + marketplace manifests
 scripts/
   check.py                    the self-check (no em dashes, links, tool-neutral core, adapters, JSON)

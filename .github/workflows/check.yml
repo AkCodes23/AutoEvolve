@@ -22,3 +22,12 @@ jobs:
         run: python3 evals/run.py --smoke
       - name: Verify the profiler pipeline (offline)
         run: python3 evals/profile.py --selftest
+      - name: Run deterministic profiler regression tests
+        run: python3 -m unittest discover -s evals -p "test_*.py"
+      - name: Validate installer syntax and dry run
+        run: |
+          sh -n install.sh
+          mkdir -p "$RUNNER_TEMP/autoevolve-target"
+          ./install.sh --target "$RUNNER_TEMP/autoevolve-target" --dry-run
+      - name: Validate agent benchmark CLI
+        run: python3 evals/agent_benchmark.py --help
