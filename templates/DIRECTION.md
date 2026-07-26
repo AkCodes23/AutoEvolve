@@ -8,8 +8,7 @@
 
 Objective:  <the goal, in one or two sentences>
 
-Signal:     <how "better" is judged: a number, a red-to-green test, or an acceptance check,
-             and where the read-only scorer or test lives>
+Signal:     {{TEST_SIGNAL}} (how "better" is judged: a number, a red-to-green test, or an acceptance check)
 
 Guardrails: <what must never break: correctness, safety, security, accessibility, and any
              explicitly required behavior>
