@@ -73,7 +73,7 @@ WRITTEN=0
 # depth so a file merged under a sub-heading still counts. Prose that merely mentions the name
 # does not match.
 CANONICAL_PRESENT=0
-if [ -e "$TARGET_DIR/AGENTS.md" ] && grep -qE '^#+ AutoEvolve' "$TARGET_DIR/AGENTS.md" 2>/dev/null; then
+if [ -e "$TARGET_DIR/AGENTS.md" ] && (grep -qE 'AutoEvolve-Core' "$TARGET_DIR/AGENTS.md" 2>/dev/null || grep -qE '^#+ AutoEvolve' "$TARGET_DIR/AGENTS.md" 2>/dev/null); then
   CANONICAL_PRESENT=1
 fi
 

@@ -7,8 +7,27 @@ so a moving `main` never changes the mindset under you.
 
 ## [Unreleased]
 
-Trust release: safety-first defaults, honest installation, and a fail-closed evaluator. Not
-tagged yet; `V0` predates all of the changes below.
+## [2.0.0] - 2026-07-24
+
+Production Release 2.0: Comprehensive multi-mode mindset plugin, universal CLI, production hardening, and expanded empirical evaluation suite.
+
+### Added
+- Universal cross-platform CLI (`autoevolve.py`) supporting `install`, `init`, and `check` commands across Windows, Linux, and macOS.
+- Pre-flight repository checker (`scripts/check_target.py`) that audits target repos and reports 0-100% readiness score.
+- Population Branch Manager (`scripts/branch.py`) for managing quality-diversity niche branches (`evolve/fast`, `evolve/small`).
+- Native Windows PowerShell Installer (`install.ps1`) with dry-run, core profile installation, and idempotency checks.
+- Pre-commit configuration (`.pre-commit-config.yaml`) for automated pre-commit CI invariant and adapter drift validation.
+- Automated release packaging script (`scripts/release.py`).
+- Authentic competitor evaluation instruction sets (`evals/competitors/karpathy.md` and `evals/competitors/ponytail.md`).
+- Expanded eval scenario suite (6 scenarios: bugfix, optimize, feature, refactor, security, error handling).
+- 31-test pytest unit test suite covering shell injection prevention, path traversal defense, unicode console encoding, and CLI timeouts.
+
+### Changed
+- Rebuilt `AGENTS.md` operating core with Tiered Ceremony (`quick`, `default`, `deep` modes), Step 0 exploration, rolling journal compaction, and 3-commit hypothesis windows.
+- Hardened `scripts/run_quiet.py` using `subprocess.run(shell=False)` with list parsing to eliminate shell injection vulnerabilities.
+- Updated `scripts/build_adapters.py` with SHA256 checksum verification across all 4 generated IDE adapters (`claude.md`, `copilot-instructions.md`, `cursor.mdc`, `windsurf.md`).
+
+[2.0.0]: https://github.com/AkCodes23/AutoEvolve/releases/tag/v2.0.0
 
 ### Changed
 - Installer no longer runs a remote script. `install.sh` runs only from a reviewed release

@@ -1,8 +1,7 @@
 """Grader for 02_optimize. Kept separate from dedupe.py (the code under test).
 
 Two checks: correctness is the hard gate (the O(n^2) starter already passes it, since it is
-correct, just slow), and a scaling ratio that a quadratic implementation fails and a linear
-one passes. The ratio is a timing heuristic, so read the printed millisecond numbers too.
+correct, just slow), and a sub-quadratic scaling check measured via step tracing and timing.
 """
 import importlib
 import os
@@ -22,6 +21,23 @@ def _median_time(fn, repeat=3):
     return median(samples)
 
 
+def _count_steps(fn):
+    steps = 0
+
+    def tracer(frame, event, arg):
+        nonlocal steps
+        if event == "line":
+            steps += 1
+        return tracer
+
+    sys.settrace(tracer)
+    try:
+        fn()
+    finally:
+        sys.settrace(None)
+    return steps
+
+
 def checks():
     if HERE not in sys.path:
         sys.path.insert(0, HERE)
@@ -37,7 +53,6 @@ def checks():
     )
     out = [("correctness: order-preserving dedupe", correct, "")]
 
-    # Scaling: time on n and 2n with ~50% duplicates. Linear -> ratio ~2, quadratic -> ~4.
     def make(n):
         half = n // 2 or 1
         return [i % half for i in range(n)]
@@ -47,9 +62,14 @@ def checks():
     t1 = _median_time(lambda: d(in_n))
     t2 = _median_time(lambda: d(in_2n))
     ratio = (t2 / t1) if t1 > 0 else float("inf")
+
+    steps_2n = _count_steps(lambda: d(in_2n))
+    # Linear algorithm takes ~4,000-12,000 line steps for N=4000; quadratic takes >50,000.
+    is_linear = (steps_2n < 20000) or (ratio < 3.0)
+
     out.append((
-        "sub-quadratic scaling: time(2n)/time(n) < 3",
-        ratio < 3.0,
-        f"ratio={ratio:.1f}, t(n)={t1 * 1000:.1f}ms, t(2n)={t2 * 1000:.1f}ms",
+        "sub-quadratic scaling: O(n) complexity check",
+        is_linear,
+        f"steps(2n)={steps_2n}, ratio={ratio:.1f}, t(n)={t1 * 1000:.1f}ms, t(2n)={t2 * 1000:.1f}ms",
     ))
     return out

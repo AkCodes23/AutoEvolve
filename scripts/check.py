@@ -26,7 +26,7 @@ def rel(path: str) -> str:
 def markdown_files() -> list[str]:
     out = []
     for dp, dirs, files in os.walk(ROOT):
-        if os.sep + ".git" in dp:
+        if ".git" in dp.replace("\\", "/").split("/"):
             continue
         for f in files:
             if f.endswith((".md", ".mdc")):

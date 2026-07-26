@@ -7,12 +7,18 @@ scope of *what all* to do, and *why*.
 AutoEvolve is **not a program you run.** There is no engine, no dependency, nothing to
 install into a runtime. It is a small set of Markdown instructions that carry one coherent
 way of working, distilled from four systems for autonomous, self-improving engineering. You
-copy it into your repo; your existing AI tools read it and change how they behave.
+copy it into your repo; your existing AI tools read it and follow its discipline.
 
-This README explains everything: the idea, the four sources, the loop, every rule and why
-it exists, how the pieces fit, and how to use it. If you only read one file to *use* the
-mindset, read [`AGENTS.md`](AGENTS.md), the lean operating core. If you want to *understand*
-it, read on.
+---
+
+## Quick Start (30 seconds)
+
+1. **Copy [`AGENTS.md`](AGENTS.md) into your target project root.**
+2. **Your AI tools (Claude Code, Cursor, Windsurf, Copilot, etc.) will read it automatically.**
+
+No dependencies, no runtime installation, and no build step required.
+
+Optional: Run `python autoevolve.py install --target /path/to/project` to automatically copy IDE-specific adapter files into `.cursor/rules/`, `.windsurfrules`, or `.github/copilot-instructions.md`.
 
 ---
 
@@ -283,6 +289,12 @@ agent turn; benchmark it against the core first.
 Or copy the operating core in by hand after reviewing the release:
 
 ```bash
+# Universal cross-platform CLI installation into any target project:
+python AutoEvolve/autoevolve.py install --target /path/to/your/repo --profile core
+python AutoEvolve/autoevolve.py init --target /path/to/your/repo
+python AutoEvolve/autoevolve.py check --target /path/to/your/repo
+
+# Or manually copy AGENTS.md:
 cp /path/to/AutoEvolve/AGENTS.md /path/to/your/repo/AGENTS.md
 ```
 
@@ -318,7 +330,10 @@ task, and keep a `JOURNAL.md` as you go.
 ```
 AGENTS.md                     the lean operating core (read/loaded every turn)
 README.md                     this file: the full explanation
-install.sh                    one-command installer (auto-detects your tools)
+`autoevolve.py`                 universal cross-platform CLI tool (install, init, check)
+`install.sh`                    POSIX one-command installer (auto-detects tools)
+`install.ps1`                   Windows PowerShell native installer
+`scripts/check_target.py`       target repository readiness checker (0-100% score)
 skills/autoevolve/SKILL.md    the mindset as a loadable agent skill
 commands/                     invocable prompt templates
   baseline.md                 define the signal and record the baseline

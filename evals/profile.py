@@ -49,6 +49,8 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 CONDITIONS = {
     "control": None,
+    "karpathy": os.path.join("evals", "competitors", "karpathy.md"),
+    "ponytail": os.path.join("evals", "competitors", "ponytail.md"),
     "core": os.path.join("adapters", "_core.md"),
     "full": "AGENTS.md",
 }
@@ -69,6 +71,25 @@ TASKS = {
         "return all items exactly as before. With page=N, return that page. Reject an invalid "
         "page (zero, negative, or non-integer)."
     ),
+    "04_refactor": (
+        "format_report([]) crashes on empty input. Fix format_report to return 'No data' "
+        "when empty, preserve summary stats for valid input, add a calculate_stats(data) helper "
+        "returning (total, average), and preserve get_summary(data)."
+    ),
+    "05_security": (
+        "Fix security vulnerabilities in user_auth.py: path traversal in get_user_file, "
+        "SQL injection in build_query, plaintext password check in authenticate, and "
+        "unrestricted file reading in get_config. Preserve valid behavior for valid inputs."
+    ),
+    "06_errorhandling": (
+        "Fix error handling issues in pipeline.py: input validation in process_records, "
+        "division by zero in calculate_average, format crashes in parse_date, and silent "
+        "error swallowing in write_output. Handle errors safely without breaking valid runs."
+    ),
+    "07_yagni": (
+        "Fix parse_tags(text) in tags.py to split comma-separated tags, strip surrounding "
+        "whitespace, and exclude empty tags. Keep the implementation minimal."
+    ),
 }
 
 BASE_INSTRUCTION = (
@@ -79,12 +100,16 @@ BASE_INSTRUCTION = (
 
 # Runs in a fresh interpreter per trial so module caching never leaks between conditions.
 _SCORER = (
-    "import sys, json, importlib.util, os\n"
+    "import sys, json, importlib.util, os, io, contextlib\n"
     "d = sys.argv[1]\n"
     "sys.path.insert(0, d)\n"
-    "spec = importlib.util.spec_from_file_location('grade', os.path.join(d, 'grade.py'))\n"
-    "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
-    "print(json.dumps([[n, bool(ok)] for n, ok, _ in m.checks()]))\n"
+    "buf = io.StringIO()\n"
+    "with contextlib.redirect_stdout(buf):\n"
+    "    spec = importlib.util.spec_from_file_location('grade', os.path.join(d, 'grade.py'))\n"
+    "    m = importlib.util.module_from_spec(spec)\n"
+    "    spec.loader.exec_module(m)\n"
+    "    results = [[n, bool(ok)] for n, ok, _ in m.checks()]\n"
+    "print(json.dumps(results))\n"
 )
 
 
@@ -102,8 +127,13 @@ def code_file(scenario: str) -> str:
 
 
 def extract_code(text: str) -> str:
-    blocks = re.findall(r"```[a-zA-Z0-9_+-]*\n(.*?)```", text, re.DOTALL)
-    return (blocks[-1] if blocks else text).strip("\n")
+    blocks = re.findall(r"```(?:[a-zA-Z0-9_+-]*\n)?(.*?)```", text, re.DOTALL)
+    if blocks:
+        # Pick the longest block if multiple exist, or the last non-empty one
+        filtered = [b.strip("\n") for b in blocks if b.strip()]
+        if filtered:
+            return filtered[-1]
+    return text.strip("\n")
 
 
 def grade_code(
@@ -148,15 +178,24 @@ def build_messages(condition_text: str | None, task: str, filename: str, code: s
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
-def call_groq(model: str, messages: list, temperature: float, max_tokens: int = 1400):
-    key = os.environ.get("GROQ_API_KEY")
-    if not key:
-        raise SystemExit("Set GROQ_API_KEY in your environment (do not commit it).")
+def call_groq(
+    model: str,
+    messages: list,
+    temperature: float,
+    max_tokens: int = 1400,
+    base_url: str | None = None,
+    api_key: str | None = None,
+):
+    endpoint = base_url or os.environ.get("OPENAI_BASE_URL") or GROQ_URL
+    key = api_key or os.environ.get("GROQ_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    if not key and "localhost" not in endpoint and "127.0.0.1" not in endpoint:
+        raise SystemExit("Set GROQ_API_KEY or OPENAI_API_KEY in environment, or specify --api-key / --base-url.")
+    key = key or "dummy-key"
     body = json.dumps(
         {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
     ).encode()
     req = urllib.request.Request(
-        GROQ_URL, data=body,
+        endpoint, data=body,
         headers={
             "Authorization": f"Bearer {key}",
             "content-type": "application/json",
@@ -229,15 +268,18 @@ def selftest() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", action="append", help="Groq model id (repeatable). Avoid Qwen if you use it elsewhere.")
+    ap.add_argument("--model", action="append", help="Model ID (repeatable). Avoid Qwen if you use it elsewhere.")
+    ap.add_argument("--base-url", help="Custom OpenAI-compatible API endpoint (defaults to GROQ_URL or OPENAI_BASE_URL)")
+    ap.add_argument("--api-key", help="API key override (defaults to GROQ_API_KEY or OPENAI_API_KEY)")
     ap.add_argument("--runs", type=int, default=3, help="trials per (scenario, condition)")
-    ap.add_argument("--conditions", default="control,core,full")
+    ap.add_argument("--conditions", default="control,karpathy,ponytail,core,full")
     ap.add_argument("--scenarios", default=",".join(sorted(TASKS)))
     ap.add_argument("--temperature", type=float, default=0.2)
     ap.add_argument("--seed", type=int, default=20260719, help="seed used to randomize trial order")
     ap.add_argument("--output", help="write trial metadata as JSON Lines for reproducible reports")
     ap.add_argument("--selftest", action="store_true", help="offline check of the grading pipeline")
     ap.add_argument("--tokens", action="store_true", help="print the context cost of each condition (no key needed)")
+    ap.add_argument("--no-sandbox", action="store_true", help="run evaluation without Docker sandbox (for local environments without Docker)")
     args = ap.parse_args()
 
     if args.tokens:
@@ -254,10 +296,11 @@ def main() -> int:
     unknown_scenarios = sorted(set(scenarios) - set(TASKS))
     if unknown_conditions or unknown_scenarios:
         ap.error(f"unknown conditions={unknown_conditions}, scenarios={unknown_scenarios}")
-    try:
-        ensure_ready()
-    except SandboxUnavailable as exc:
-        ap.error(str(exc))
+    if not args.no_sandbox:
+        try:
+            ensure_ready()
+        except SandboxUnavailable as exc:
+            ap.error(str(exc))
 
     jobs = [
         (model, scenario, condition, trial)
@@ -274,10 +317,10 @@ def main() -> int:
         cond_text = read_text(CONDITIONS[cond]) if CONDITIONS[cond] else None
         msgs = build_messages(cond_text, TASKS[scenario], filename, starter)
         prompt_hash = hashlib.sha256(msgs[0]["content"].encode()).hexdigest()
-        content, tokens, error = call_groq(model, msgs, args.temperature)
+        content, tokens, error = call_groq(model, msgs, args.temperature, base_url=args.base_url, api_key=args.api_key)
         outcome = "api_error" if error else "fail"
         if not error:
-            graded, grade_error = grade_code(scenario, extract_code(content), sandboxed=True)
+            graded, grade_error = grade_code(scenario, extract_code(content), sandboxed=not args.no_sandbox)
             if grade_error:
                 outcome, error = "grader_error", grade_error
             elif graded and all(ok for _, ok in graded):
