@@ -27,11 +27,27 @@ markers are left alone: they are work markers, not descriptions.
 
 Python only. Deciding whether a comment holds a statement needs a parser, and the standard
 library ships one for this language and no other.
+
+MEASURED ACCURACY, and the limits that come with it. Over the Python standard library, 551
+files and 282k lines by hundreds of authors, this reports 0.57 noise and 1.04 candidates per
+KLOC. Two hand audits of 30 random findings each drove every detector here; the residual known
+errors, all found that way and all left in deliberately:
+
+  * A banner block (`# ====` / `# Section` / `# ====`) is NOT reported, because the same shape
+    is an ASCII table in dataclasses.py, and a missed banner costs less than deleting a drawn
+    table. Bare rules with nothing between them are still caught.
+  * A block of assignments used as illustration, like traceback.py's `# text = "   foo\\n"`
+    above the code computing it, reads as disabled code. One case in 282k lines.
+  * A docstring is compared to the signature after removing stopwords only, not verbs, so
+    'Get the json charset.' on `json_charset(headers)` is missed. Subtracting verbs too was
+    measured: it adds 26 findings on the stdlib, concentrated in the one detector whose audit
+    produced the most arguable calls, so the miss is the cheaper error.
 """
 from __future__ import annotations
 
 import argparse
 import ast
+import collections
 import io
 import os
 import re
@@ -42,9 +58,13 @@ import tokenize
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from callers import changed_files, git  # noqa: E402
 
+# `pyright: reportUnusedImport=false` parses as an assignment, so a directive that is not in
+# this list gets reported as commented-out code. Found on the first real repository this was
+# pointed at, in requests/src/requests/compat.py.
 KEEP_PREFIXES = ("todo", "fixme", "hack", "xxx", "evolve:", "type:", "noqa", "pragma",
                  "pylint:", "mypy:", "ruff:", "flake8:", "isort:", "fmt:", "nosec",
-                 "coding:", "-*-", "!")
+                 "pyright:", "pytype:", "bandit:", "yapf:", "black", "codespell:",
+                 "cspell:", "spell-checker:", "sourcery", "coding:", "-*-", "!")
 
 # Comments that narrate the change rather than the code: `# Fix: use a parameterized query`.
 # This is the single most common thing a model writes, measured. Across 146 comments authored by
@@ -250,6 +270,35 @@ def next_code_line(lines: list[str], start: int) -> tuple[int, str] | None:
     return None
 
 
+def file_at_rev(root: str, rel: str, rev: str) -> str | None:
+    code, out = git(["show", f"{rev}:{rel}"], root)
+    return out if code == 0 else None
+
+
+def new_findings(path: str, baseline_source: str | None) -> list[tuple[int, str, str]]:
+    """Findings in the file now that were not already there in `baseline_source`.
+
+    Adopting this in an existing repository is the case that decides whether anyone keeps it.
+    Pointed at `requests`, the hook blocked a clean commit because `utils.py` already carried a
+    restating docstring nine hundred lines from the edit. A gate that fails for someone else's
+    old comment gets switched off within a day, and then it protects nothing.
+
+    Findings are matched by message, not by line, because inserting a function above one moves
+    every line under it without changing a thing about it.
+    """
+    findings = scan(path)
+    if baseline_source is None:
+        return findings
+    prior = collections.Counter(message for _, _, message in scan_source(baseline_source, path))
+    fresh = []
+    for line, tier, message in findings:
+        if prior[message]:
+            prior[message] -= 1
+        else:
+            fresh.append((line, tier, message))
+    return fresh
+
+
 def scan(path: str) -> list[tuple[int, str, str]]:
     """Every finding in one file as (line, tier, message), ordered by line."""
     try:
@@ -257,6 +306,10 @@ def scan(path: str) -> list[tuple[int, str, str]]:
             source = handle.read()
     except (OSError, UnicodeDecodeError):
         return []
+    return scan_source(source, path)
+
+
+def scan_source(source: str, path: str) -> list[tuple[int, str, str]]:
     lines = source.splitlines()
 
     found: list[tuple[int, str, str]] = []
@@ -268,11 +321,15 @@ def scan(path: str) -> list[tuple[int, str, str]]:
     for block in comment_blocks(source, lines):
         row = block[0].start[0]
         raws = [t.string.lstrip("#").strip() for t in block]
+        # Keep the leading whitespace: a disabled `if`/`return` pair only parses as a
+        # block because of how its lines are indented relative to each other.
+        indented = [t.string[1:] if t.string.startswith("#") else t.string
+                    for t in block]
         bodies = [undecorate(r) for r in raws]
         if any(b.lower().startswith(KEEP_PREFIXES) for b in bodies if b):
             continue
         if len(block) > 1:
-            found.extend(judge_block(row, raws, bodies))
+            found.extend(judge_block(row, raws, bodies, indented))
             continue
         token, raw, body = block[0], raws[0], bodies[0]
         if not raw:
@@ -306,7 +363,8 @@ def narration_message(body: str) -> str:
             "that this line changed. Keep the why, drop the framing.")
 
 
-def judge_block(row: int, raws: list[str], bodies: list[str]) -> list[tuple[int, str, str]]:
+def judge_block(row: int, raws: list[str], bodies: list[str],
+                indented: list[str]) -> list[tuple[int, str, str]]:
     """A multi-line comment is prose unless every one of its lines is code.
 
     Restatement is not tested here at all. A comment that needed several lines is explaining
@@ -321,12 +379,36 @@ def judge_block(row: int, raws: list[str], bodies: list[str]) -> list[tuple[int,
     written = [b for b in bodies if b]
     if not written:
         return []
-    if all(is_commented_out_code(b) for b in written):
+    if is_commented_out_block(indented) or all(is_commented_out_code(b) for b in written):
         return [(row, "noise", f"# {written[0][:76]}  (commented-out code block, "
                                f"{len(written)} lines: delete it, git remembers)")]
     if NARRATION.match(written[0]):
         return [(row, "candidate", narration_message(written[0]))]
     return []
+
+
+def is_commented_out_block(indented: list[str]) -> bool:
+    """True when the block's lines parse together as code, even though none parses alone.
+
+    Disabling a branch produces `# if x is None:` above `#     return None`, and neither line is
+    valid Python by itself: the first has no body, the second is a return outside a function.
+    Judging them one at a time therefore misses the most worthwhile thing this tool can find.
+    Their original indentation relative to each other is what makes them parse, so it is kept.
+    """
+    snippet = textwrap.dedent("\n".join(indented)).strip("\n")
+    if not snippet.strip() or "\n" not in snippet:
+        return False
+    for source in (snippet, "def _():\n" + textwrap.indent(snippet, "    ")):
+        try:
+            tree = ast.parse(source)
+        except (SyntaxError, ValueError, MemoryError, RecursionError):
+            continue
+        body = tree.body[0].body if source is not snippet else tree.body
+        if body and all(isinstance(n, CODE_NODES) or isinstance(n, ast.Expr)
+                        and isinstance(n.value, (ast.Call, ast.Await, ast.Yield, ast.YieldFrom))
+                        for n in body):
+            return True
+    return False
 
 
 def staged_files(root: str) -> list[str]:
@@ -375,18 +457,36 @@ def main() -> int:
                         help="cap the findings listed per file, so the report stays readable")
     parser.add_argument("--strict", action="store_true",
                         help="exit 1 if any noise is found; candidates never fail")
+    parser.add_argument("--baseline", metavar="REV",
+                        help="report only findings this change introduced, hiding what the file "
+                             "already carried at REV. --staged implies --baseline HEAD, so "
+                             "adopting the hook in an existing repo does not block on someone "
+                             "else's old comment. Pass --baseline '' to see everything.")
     args = parser.parse_args()
+
+    # A comment holding any character outside the console codepage crashed the report on Windows
+    # partway through, losing every finding after it. requests/src/requests/status_codes.py has a
+    # U+2717 in one. Findings matter more than glyph fidelity, so unencodable characters degrade.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
 
     root = os.path.abspath(args.root)
     targets = python_targets(root, args.paths, args.rev, args.staged)
+    baseline = args.baseline
+    if baseline is None and args.staged:
+        baseline = "HEAD"
     if not targets:
         print("No changed Python files found. Pass --paths explicitly, or check --rev.")
         return 0
 
-    noise = candidates = 0
-    for rel in sorted(targets):
-        full = rel if os.path.isabs(rel) else os.path.join(root, rel)
-        findings = scan(full)
+    noise = candidates = hidden = 0
+    for target in sorted(targets):
+        full = target if os.path.isabs(target) else os.path.join(root, target)
+        rel = os.path.relpath(full, root).replace(os.sep, "/")
+        prior_source = file_at_rev(root, rel, baseline) if baseline else None
+        findings = new_findings(full, prior_source)
+        hidden += len(scan(full)) - len(findings)
         if not findings:
             continue
         shown = findings[:args.max_per_file]
@@ -401,11 +501,13 @@ def main() -> int:
         noise += sum(1 for f in findings if f[1] == "noise")
         candidates += sum(1 for f in findings if f[1] == "candidate")
 
+    carried = (f" ({hidden} pre-existing finding(s) not introduced by this change are hidden; "
+               f"re-run without --baseline to see them)" if hidden else "")
     if not noise and not candidates:
-        print(f"No comment noise found in {len(targets)} file(s).")
+        print(f"No comment noise found in {len(targets)} file(s).{carried}")
         return 0
 
-    print(f"{noise} noise, {candidates} candidate across {len(targets)} file(s).")
+    print(f"{noise} noise, {candidates} candidate across {len(targets)} file(s).{carried}")
     print("Delete the noise. For each candidate, keep the comment only if it records something")
     print("the code cannot: a measured result, a rejected alternative, a caveat. If it just")
     print("narrates the line below, the better fix is usually a clearer name.")
