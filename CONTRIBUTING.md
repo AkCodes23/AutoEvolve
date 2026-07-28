@@ -29,7 +29,7 @@ up to date with `AGENTS.md`.
 
 - **No em dashes.** Use commas, colons, or parentheses.
 - **Keep the core tool-neutral.** `AGENTS.md`, `skills/`, `commands/`, and the conceptual
-  docs must not name a specific tool; put tool-specific paths in `adapters/` and `docs/INSTALL.md`.
+  docs must not name a specific tool; put tool-specific paths in `adapters/` and the README.
 - **Practice what it preaches.** Small diffs, walk the ladder, keep changes verifiable.
 
 ## Flow

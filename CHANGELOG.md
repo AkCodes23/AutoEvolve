@@ -39,8 +39,10 @@ so a moving `main` never changes the mindset under you.
   predictions, and which of them failed.
 
 ### Changed
-- README 488 to 120 lines, CHANGELOG 416 to ~130, `docs/RESULTS.md` 372 to 100, two module
-  docstrings halved, `docs/COMPATIBILITY.md` folded into `docs/INSTALL.md`. No capability removed.
+- README 488 to ~130 lines, CHANGELOG 416 to ~130, two module docstrings halved. `docs/` is down
+  to the three files that are actually actionable: the checklist, a worked example, and sources.
+  `RESULTS.md`, `BENCHMARK.md`, `PRINCIPLES.md`, `INSTALL.md` and `COMPATIBILITY.md` are gone;
+  installation is two commands in the README, and the measured findings are in git history.
 - CI drops the eval steps and gains one: the mechanisms must come up clean under their own
   `comments.py --strict`.
 

@@ -70,8 +70,10 @@ def check_no_em_dashes() -> None:
 # tools. AGENTS.md is the single profile and the file the installers write into a target, so it is
 # the most important file this invariant protects. The generated adapters are exempt because they
 # legitimately carry tool-specific frontmatter.
+# docs/SOURCES.md is attribution, so it names the products it credits; the invariant
+# covers the docs an agent follows, not the one crediting where the ideas came from.
 CORE = ("AGENTS.md", "templates/", "skills/", "commands/",
-        "docs/PRINCIPLES.md", "docs/EXAMPLE.md", "docs/CHECKLIST.md")
+        "docs/CHECKLIST.md", "docs/EXAMPLE.md")
 ASSISTANT_PRODUCTS = ["claude", "cursor", "copilot", "windsurf", "codex", "antigravity", "gemini", "cline", "devin"]
 
 

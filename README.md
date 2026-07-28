@@ -82,13 +82,9 @@ An independent synthesis of four sources, each contributing one layer. Full attr
 
 ## Honesty about what is proven
 
-[`docs/RESULTS.md`](docs/RESULTS.md) holds every measured comparison, including the predictions
-registered before each run and the ones that failed. Numbers that could not be reproduced were
-withdrawn rather than corrected.
-
-**The benchmark harness is not in this repository.** It was removed to keep the repo close to
-what it ships, and it is recoverable from git history at commit `9ac36c9`. So you cannot rerun
-those numbers from a fresh clone; what you can check is the method and the pre-registrations.
+Nothing here claims the mindset text improves model output. It was measured repeatedly and it
+does not, which is why the scripts above exist. The benchmark harness and its results are not in
+this repository; both are in git history at commit `9ac36c9` if you want to rerun them.
 
 Nothing here claims the mindset text improves model output. It has been measured repeatedly and
 it does not, which is the honest finding and the reason the mechanisms above exist.
