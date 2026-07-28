@@ -266,6 +266,19 @@ class CommentBlockTests(unittest.TestCase):
             flags = compute()
         """), [])
 
+    def test_a_disabled_branch_parses_only_as_a_block(self) -> None:
+        """Neither line is valid alone: the `if` has no body, the `return` is outside a function.
+
+        imaplib.py, colorsys.py and zipimport.py all carry this shape, and it is the most
+        worthwhile thing the tool finds, so judging lines one at a time was a real miss.
+        """
+        self.assertEqual(tiers("""
+            def handler(content_type):
+                # if content_type is None:
+                #     return None
+                return content_type
+        """), ["noise"])
+
     def test_a_wholly_commented_out_block_is_still_caught(self) -> None:
         self.assertEqual(tiers("""
             # conn = sqlite3.connect("users.db")
@@ -276,6 +289,53 @@ class CommentBlockTests(unittest.TestCase):
 
     def test_a_block_of_pure_rules_is_still_decoration(self) -> None:
         self.assertEqual(tiers("# =========\n# ---------\nvalue = 1\n"), ["noise"])
+
+
+class BaselineTests(unittest.TestCase):
+    """Adopting this in a repo that already has noise is the case that decides if it survives.
+
+    Pointed at `requests` with no baseline, the hook blocked a clean commit because utils.py
+    already carried a restating docstring nine hundred lines from the edit. A gate that fails
+    for someone else's old comment gets switched off, and then it protects nothing.
+    """
+
+    BEFORE = 'def old_helper(user):\n    """Old helper."""\n    return user\n'
+    AFTER_CLEAN = BEFORE + '\n\ndef fresh(rows):\n    return sorted(rows)\n'
+    AFTER_NOISY = BEFORE + '\n\ndef fresh(rows):\n    # cache = {}\n    return sorted(rows)\n'
+
+    def write(self, source: str) -> str:
+        tmp = tempfile.mkdtemp()
+        path = os.path.join(tmp, "sample.py")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(source)
+        return path
+
+    def test_pre_existing_noise_is_hidden(self) -> None:
+        self.assertTrue(comments.scan(self.write(self.AFTER_CLEAN)))
+        self.assertEqual(comments.new_findings(self.write(self.AFTER_CLEAN), self.BEFORE), [])
+
+    def test_newly_introduced_noise_still_fails(self) -> None:
+        fresh = comments.new_findings(self.write(self.AFTER_NOISY), self.BEFORE)
+        self.assertEqual([tier for _, tier, _ in fresh], ["noise"])
+
+    def test_no_baseline_reports_everything(self) -> None:
+        self.assertTrue(comments.new_findings(self.write(self.AFTER_CLEAN), None))
+
+    def test_a_finding_that_only_moved_is_not_new(self) -> None:
+        """Inserting a function above one shifts its lines without changing it."""
+        moved = "import os\n\n\n" + self.BEFORE
+        self.assertEqual(comments.new_findings(self.write(moved), self.BEFORE), [])
+
+    def test_a_second_copy_of_the_same_noise_is_new(self) -> None:
+        """Matching by message must count occurrences, not membership, or duplicates hide.
+
+        Two identical `# cache = {}` lines produce byte-identical messages, so a set would
+        treat the second one as already known and wave it through.
+        """
+        once = "# cache = {}\nvalue = 1\n"
+        twice = "# cache = {}\nvalue = 1\n\n\n# cache = {}\nother = 2\n"
+        self.assertEqual(len(comments.scan(self.write(twice))), 2)
+        self.assertEqual(len(comments.new_findings(self.write(twice), once)), 1)
 
 
 class RepositoryCalibrationTests(unittest.TestCase):
