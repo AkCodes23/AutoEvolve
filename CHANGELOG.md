@@ -50,6 +50,27 @@ so a moving `main` never changes the mindset under you.
   dead code while three callers sat ten lines below. Both new test files were mutation-checked:
   reintroducing that bug fails `test_reports_callers_inside_the_defining_file`, and loosening
   `is_commented_out_code` to treat a bare name as code fails the prose guard on `# TODO`.
+- **Benchmarked and used, and both changed the tool.** Calibrating against twelve files written by
+  one author in one week was no evidence at all, so it was measured twice against code nobody here
+  wrote, and once by installing it into a real project and doing the documented journey.
+  - *The 90 stored model outputs from 2026-07-27.* Models author about 1.5 comments per file, and
+    **43 percent are diff-narration** (`# Fix: use a parameterized query`), produced at the same
+    rate by every ruleset: control 13, autoevolve 12, ponytail 9, karpathy 8. That is a sixth
+    independent replication of this repository's central finding and the strongest argument yet
+    for a mechanism over a sentence. Now detected, as a candidate rather than noise.
+  - *The Python standard library*, 551 files and 282k lines. Two hand audits of 30 random findings
+    found five false positives, and one cause dominated: consecutive `#` lines are ONE comment and
+    were judged line by line. Noise went **2.01 to 0.57 per KLOC**, a 73 percent cut, with every
+    audited true positive still caught. `scripts/corpus_audit.py` reproduces the measurement and
+    prints a seeded sample so an audit can be checked rather than trusted.
+  - *A fresh clone of `psf/requests`.* Setup detected pytest and scored 100 percent readiness;
+    `callers.py` surfaced a same-file caller plus a cross-module contract in `adapters.py` before
+    an edit. Then the hook **blocked a clean commit** over a restating docstring nine hundred lines
+    away that the change never touched. That behaviour makes the tool unusable in any repository
+    that predates it, so `--staged` now implies `--baseline HEAD` and only findings a change
+    introduces can fail. Two more day-one bugs came from the same session: the report died with
+    `UnicodeEncodeError` on a U+2717 in `status_codes.py`, losing every finding after it, and
+    `# pyright: reportUnusedImport=false` was called commented-out code.
 - **Not added, deliberately:** no comment invariant in `scripts/check.py`, and no twelfth eval
   scenario. Grading comment density requires inspecting source, which is the exact property every
   scenario grader was rewritten to eliminate, and it is trivially gameable by an agent that can
