@@ -46,6 +46,22 @@ KEEP_PREFIXES = ("todo", "fixme", "hack", "xxx", "evolve:", "type:", "noqa", "pr
                  "pylint:", "mypy:", "ruff:", "flake8:", "isort:", "fmt:", "nosec",
                  "coding:", "-*-", "!")
 
+# Comments that narrate the change rather than the code: `# Fix: use a parameterized query`.
+# This is the single most common thing a model writes, measured. Across 146 comments authored by
+# llama-3.1-8b over 90 graded trials, 43 percent matched this shape, at the same rate under every
+# ruleset tested including two competitors: 13 under control, 12 under AutoEvolve, 8 under
+# karpathy. No wording moved it, which is why it is worth detecting rather than requesting.
+#
+# It is a candidate and not noise because the tail sometimes carries a real why ("to prevent SQL
+# injection"). The `Fix:` framing is still wrong: it addresses a reviewer of the diff, git already
+# records that this line changed, and one merge later it describes history rather than code.
+# Requiring the colon or dash keeps ordinary prose out, so "# fixed in 3.11, see bpo-12345" and
+# "# fix the caller too" do not match.
+NARRATION = re.compile(
+    r"^(fix|fixed|fixes|change[d]?|update[d]?|add[ed]?|remove[d]?|delete[d]?|modif\w+|"
+    r"refactor\w*|rename[d]?|replace[d]?|improve[d]?|new|before|after|old|was)\b\s*[:\-]",
+    re.IGNORECASE)
+
 # `ast.Global`/`ast.Nonlocal` are deliberately absent: "# global state" is ordinary prose that
 # parses as a Global statement, and one false positive in a report costs more than the rare
 # commented-out `global` it would have caught.
@@ -74,6 +90,7 @@ VERBS = {
     "append", "insert", "delete", "clear", "reset", "apply", "assign", "instantiate", "setup",
 }
 
+CALL_WITH_SPACE = re.compile(r"^\w+(\.\w+)*\s+\(")
 WORD = re.compile(r"[A-Za-z][A-Za-z0-9]*")
 PART = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z][a-z0-9]*")
 DIVIDER_CHARS = "=-*~_+#.<>|/ "
@@ -92,12 +109,17 @@ def words(text: str) -> set[str]:
     return found
 
 
-def is_commented_out_code(body: str) -> bool:
+def is_commented_out_code(body: str, trailing: bool = False) -> bool:
     """True when the text after the `#` parses as a statement rather than reading as prose.
 
     Bare names and literals are rejected on purpose. `# TODO`, `# noqa` and `# ok` all parse
     cleanly as expressions, so requiring a statement (or an expression that calls something) is
     what separates a disabled line of code from an English fragment that happens to be one word.
+
+    `trailing` says the comment sits after live code on the same line, which changes the answer
+    for a bare call. You disable a statement by commenting out its whole line, so a lone call
+    riding along beside working code is nearly always an annotation: `scale = 2.0 ** -512
+    # sqrt(1 / sys.float_info.max)` in statistics.py records where the constant came from.
     """
     body = body.strip()
     if len(body) < 3:
@@ -122,7 +144,9 @@ def is_commented_out_code(body: str) -> bool:
             return True
         if isinstance(node, ast.Expr) and isinstance(
                 node.value, (ast.Call, ast.Await, ast.Yield, ast.YieldFrom, ast.NamedExpr)):
-            return True
+            # `# Quechua (Peru)` in locale.py parses as a call. Nobody writes `f (x)` in Python
+            # and PEP 8 forbids it, so the space is the tell that this is prose.
+            return not trailing and not CALL_WITH_SPACE.match(body)
     return False
 
 
@@ -187,6 +211,37 @@ def comment_tokens(source: str) -> list[tokenize.TokenInfo]:
     return found
 
 
+def comment_blocks(source: str, lines: list[str]) -> list[list[tokenize.TokenInfo]]:
+    """Group consecutive own-line comments at the same indent into one comment.
+
+    Judging each `#` line separately is wrong, and an audit of 30 random findings in the Python
+    standard library showed it was the single cause of every false positive: `# module).` in
+    dataclasses.py is the tail of a four-line sentence, `# D = C[[int, str], float]` in typing.py
+    is an indented example inside an explanation, and `# +-------+-------+-------+` is a row of
+    an ASCII table. Each looks like noise alone and is obviously not noise in its block.
+    """
+    blocks: list[list[tokenize.TokenInfo]] = []
+    current: list[tokenize.TokenInfo] = []
+    for token in comment_tokens(source):
+        row, col = token.start
+        own_line = not lines[row - 1][:col].strip()
+        joins = (current and own_line and row == current[-1].start[0] + 1
+                 and col == current[-1].start[1])
+        if joins:
+            current.append(token)
+            continue
+        if current:
+            blocks.append(current)
+        current = []
+        if own_line:
+            current = [token]
+        else:
+            blocks.append([token])
+    if current:
+        blocks.append(current)
+    return blocks
+
+
 def next_code_line(lines: list[str], start: int) -> tuple[int, str] | None:
     for offset in range(start, min(start + 3, len(lines))):
         text = lines[offset].strip()
@@ -210,22 +265,31 @@ def scan(path: str) -> list[tuple[int, str, str]]:
     except (SyntaxError, ValueError):
         pass
 
-    for token in comment_tokens(source):
-        row = token.start[0]
-        raw = token.string.lstrip("#").strip()
+    for block in comment_blocks(source, lines):
+        row = block[0].start[0]
+        raws = [t.string.lstrip("#").strip() for t in block]
+        bodies = [undecorate(r) for r in raws]
+        if any(b.lower().startswith(KEEP_PREFIXES) for b in bodies if b):
+            continue
+        if len(block) > 1:
+            found.extend(judge_block(row, raws, bodies))
+            continue
+        token, raw, body = block[0], raws[0], bodies[0]
         if not raw:
             continue
         if is_divider(raw):
             found.append((row, "noise", f"# {raw[:88]}  (decoration, not information)"))
             continue
-        body = undecorate(raw)
-        if not body or body.lower().startswith(KEEP_PREFIXES):
+        if not body:
             continue
-        if is_commented_out_code(body):
+        before = lines[row - 1][:token.start[1]].strip()
+        if is_commented_out_code(body, trailing=bool(before)):
             found.append((row, "noise", f"# {body[:88]}  (commented-out code: delete it, "
                                         "git remembers)"))
             continue
-        before = lines[row - 1][:token.start[1]].strip()
+        if NARRATION.match(body):
+            found.append((row, "candidate", narration_message(body)))
+            continue
         described = (row, before) if before else next_code_line(lines, row)
         if described is None:
             continue
@@ -235,6 +299,34 @@ def scan(path: str) -> list[tuple[int, str, str]]:
             found.append((row, "candidate", f"# {body[:88]}\n        restates {where}:  "
                                             f"{described[1][:88]}"))
     return sorted(found)
+
+
+def narration_message(body: str) -> str:
+    return (f"# {body[:88]}\n        narrates the change, not the code: git already records "
+            "that this line changed. Keep the why, drop the framing.")
+
+
+def judge_block(row: int, raws: list[str], bodies: list[str]) -> list[tuple[int, str, str]]:
+    """A multi-line comment is prose unless every one of its lines is code.
+
+    Restatement is not tested here at all. A comment that needed several lines is explaining
+    something, and matching its last line against the code that follows compares a sentence
+    fragment to an unrelated statement, which is how `# module).` came to be a finding.
+    """
+    # Before the emptiness guard: undecorate() reduces a bare rule to "", so a block of nothing
+    # but rules has no written content and would otherwise return early as unremarkable.
+    rules = [r for r in raws if r and is_divider(r)]
+    if rules and all(is_divider(r) for r in raws if r):
+        return [(row, "noise", f"# {raws[0][:88]}  ({len(raws)} lines of decoration)")]
+    written = [b for b in bodies if b]
+    if not written:
+        return []
+    if all(is_commented_out_code(b) for b in written):
+        return [(row, "noise", f"# {written[0][:76]}  (commented-out code block, "
+                               f"{len(written)} lines: delete it, git remembers)")]
+    if NARRATION.match(written[0]):
+        return [(row, "candidate", narration_message(written[0]))]
+    return []
 
 
 def staged_files(root: str) -> list[str]:
