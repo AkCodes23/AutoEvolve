@@ -39,6 +39,12 @@ so a moving `main` never changes the mindset under you.
   (`scripts` unit tests and both mechanism CLIs), and `autoevolve.py hooks`, which now runs
   `comments.py --staged --strict` so only provable noise can block a commit. `--staged` reads the
   index inside Python, so a path containing a space cannot split into two arguments in the hook.
+- **`scripts/callers.py` finally has tests too** (`scripts/test_callers.py`). It shipped as a
+  mechanism with nothing pinning its output, having already once had the bug where it skipped the
+  file a symbol was defined in, reported "no references found", and suggested the symbol might be
+  dead code while three callers sat ten lines below. Both new test files were mutation-checked:
+  reintroducing that bug fails `test_reports_callers_inside_the_defining_file`, and loosening
+  `is_commented_out_code` to treat a bare name as code fails the prose guard on `# TODO`.
 - **Not added, deliberately:** no comment invariant in `scripts/check.py`, and no twelfth eval
   scenario. Grading comment density requires inspecting source, which is the exact property every
   scenario grader was rewritten to eliminate, and it is trivially gameable by an agent that can

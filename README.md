@@ -417,6 +417,7 @@ scripts/
   run_quiet.py                run a command and summarize it, to save agent context
   callers.py                  list the call sites of every symbol you just changed
   comments.py                 report comment noise in the code you just changed
+  test_callers.py             calibration tests for callers.py
   test_comments.py            calibration tests, half of them false-positive guards
 .github/workflows/check.yml   runs the self-check on every push and pull request
 CONTRIBUTING.md   CHANGELOG.md   LICENSE
