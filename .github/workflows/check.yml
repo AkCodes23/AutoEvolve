@@ -35,6 +35,7 @@ jobs:
         run: |
           python3 scripts/callers.py --help
           python3 scripts/comments.py --help
+          python3 scripts/corpus_audit.py --help
       - name: Validate installer syntax and dry run
         run: |
           sh -n install.sh
