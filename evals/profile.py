@@ -2,17 +2,23 @@
 """Profile the mindset's real-world effect: does loading it help, or just add context?
 
 This runs a controlled A/B on the eval scenarios. For each scenario it asks a model to fix
-the broken starter file under three conditions that differ ONLY in how much mindset text is
-in the system prompt:
+the broken starter file under conditions that differ ONLY in what instruction text is in the
+system prompt:
 
-    control : no mindset (just "fix this file")
-    core    : the ~25-line condensed core (adapters/_core.md)
-    full    : the full AGENTS.md (~150 lines)
+    control  : no instructions beyond the task (just "fix this file")
+    karpathy : the Karpathy coding guidelines (evals/competitors/karpathy.md)
+    ponytail : the ponytail minimalism ruleset (evals/competitors/ponytail.md)
+    autoevolve : the AutoEvolve mindset (AGENTS.md)
 
-then grades the model's output with the scenario's own grader and reports the pass rate and
-the average prompt-token cost per condition. If `full` does not beat `core`, the extra
-context is not earning its tokens. If `core`/`full` do worse than `control`, the context is
-making the model dumber, which is exactly what this is here to catch.
+then grades the model's output with the scenario's own grader and reports the pass rate, the work
+done, and the prompt-token cost per condition. If `autoevolve` does worse than `control`, the
+context is making the model dumber, which is exactly what this is here to catch. The two
+competitor conditions ask the harder question: does synthesizing these sources beat either source
+alone?
+
+Results are reported two ways. `strict pass` needs every check in a scenario to pass;
+`graded checks` is the mean fraction of checks passed, which carries far more signal per
+trial and is what you should compare when the trial budget is small.
 
 Uses Groq's OpenAI-compatible API (small models show the effect most clearly). Standard
 library only. Set your key first, and do not commit it:
@@ -28,6 +34,8 @@ calls); it is an on-demand experiment.
 from __future__ import annotations
 
 import argparse
+import difflib
+import glob
 import hashlib
 import json
 import os
@@ -46,51 +54,38 @@ from sandbox import SandboxUnavailable, ensure_ready, run_python
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCEN = os.path.join(ROOT, "evals", "scenarios")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+# Upper bound on a single honored Retry-After. A token-per-minute bucket refills within a
+# few minutes, so this is a runaway guard rather than a policy.
+MAX_RETRY_WAIT_SECONDS = 300
 
 CONDITIONS = {
     "control": None,
     "karpathy": os.path.join("evals", "competitors", "karpathy.md"),
     "ponytail": os.path.join("evals", "competitors", "ponytail.md"),
-    "core": os.path.join("adapters", "_core.md"),
-    "full": "AGENTS.md",
+    # One profile. `core` and `full` were separate arms until a measured run showed the condensed
+    # one scored higher at 47 percent fewer tokens, so the longer profile was retired rather than
+    # maintained alongside it. Datasets recorded before that carry `core`/`full` labels.
+    "autoevolve": "AGENTS.md",
 }
 
-# A concise task per scenario. Kept short on purpose so the rubric is not leaked to the model.
-TASKS = {
-    "01_bugfix": (
-        "search('') crashes instead of returning an empty list. search is also called by "
-        "suggest, count_matches, and has_match. Fix it so an empty query returns empty "
-        "results through every caller, and valid queries still work."
-    ),
-    "02_optimize": (
-        "dedupe(items) removes duplicates while preserving order but is O(n^2). Make it run "
-        "in linear time without changing its behavior or output order."
-    ),
-    "03_feature": (
-        "Add a `page` parameter to list_items (1-based, per_page default 10). With no page, "
-        "return all items exactly as before. With page=N, return that page. Reject an invalid "
-        "page (zero, negative, or non-integer)."
-    ),
-    "04_refactor": (
-        "format_report([]) crashes on empty input. Fix format_report to return 'No data' "
-        "when empty, preserve summary stats for valid input, add a calculate_stats(data) helper "
-        "returning (total, average), and preserve get_summary(data)."
-    ),
-    "05_security": (
-        "Fix security vulnerabilities in user_auth.py: path traversal in get_user_file, "
-        "SQL injection in build_query, plaintext password check in authenticate, and "
-        "unrestricted file reading in get_config. Preserve valid behavior for valid inputs."
-    ),
-    "06_errorhandling": (
-        "Fix error handling issues in pipeline.py: input validation in process_records, "
-        "division by zero in calculate_average, format crashes in parse_date, and silent "
-        "error swallowing in write_output. Handle errors safely without breaking valid runs."
-    ),
-    "07_yagni": (
-        "Fix parse_tags(text) in tags.py to split comma-separated tags, strip surrounding "
-        "whitespace, and exclude empty tags. Keep the implementation minimal."
-    ),
-}
+# A concise task per scenario, read from evals/manifest.json so the task text has ONE home.
+# It used to be duplicated here and in the manifest, which is the same drift trap that let the
+# docs describe three conditions while the code ran five: two copies of a fact stay equal only
+# until someone edits one of them. evals/agent_benchmark.py reads the same file.
+MANIFEST = os.path.join(ROOT, "evals", "manifest.json")
+
+
+def _load_tasks() -> dict:
+    with open(MANIFEST, encoding="utf-8") as handle:
+        data = json.load(handle)
+    tasks = {t["id"]: " ".join(t["task"].split()) for t in data["tasks"]}
+    missing = [t for t in tasks if not os.path.isdir(os.path.join(SCEN, t))]
+    if missing:
+        raise SystemExit(f"manifest names scenarios that do not exist: {', '.join(sorted(missing))}")
+    return tasks
+
+
+TASKS = _load_tasks()
 
 BASE_INSTRUCTION = (
     "You are a coding assistant. You are given a task and the current contents of a file. "
@@ -113,6 +108,24 @@ _SCORER = (
 )
 
 
+def grader_revision() -> str:
+    """A fingerprint of every scenario grader, recorded on each row.
+
+    Scores produced by different graders must never be pooled, and this repository has had to
+    void whole result sets over exactly that. Until now the revision lived only in prose and in
+    some filenames, so `directcode_cost.jsonl` shipped with no machine-readable way to tell which
+    ruler produced it. A number a program cannot check is a number someone will eventually pool.
+    """
+    digest = hashlib.sha256()
+    for path in sorted(glob.glob(os.path.join(SCEN, "*", "grade.py"))):
+        with open(path, "rb") as handle:
+            digest.update(handle.read())
+    return digest.hexdigest()[:12]
+
+
+GRADER_REVISION = grader_revision()
+
+
 def read_text(rel_path: str) -> str:
     with open(os.path.join(ROOT, rel_path), encoding="utf-8") as f:
         return f.read()
@@ -129,34 +142,85 @@ def code_file(scenario: str) -> str:
 def extract_code(text: str) -> str:
     blocks = re.findall(r"```(?:[a-zA-Z0-9_+-]*\n)?(.*?)```", text, re.DOTALL)
     if blocks:
-        # Pick the longest block if multiple exist, or the last non-empty one
+        # Take the LAST non-empty block. The prompt asks for one block holding the whole
+        # corrected file; when a model emits more than one, the final block is the answer and
+        # the earlier ones are reasoning or partial drafts.
         filtered = [b.strip("\n") for b in blocks if b.strip()]
         if filtered:
             return filtered[-1]
     return text.strip("\n")
 
 
+def work_done(starter: str, produced: str) -> dict:
+    """Measure the WORK a submission represents, not the tokens it cost to produce.
+
+    Tokens are an input price and checks passed are an output score. Neither says anything about
+    HOW the change was made, which is the only thing this project actually claims: smallest correct
+    diff, deletion over addition, do not disturb what already works. Those are claims about work,
+    and they are measurable from the produced source with no extra model calls.
+
+    Returns churn (lines added plus removed), added, removed, and the fraction of the starter's
+    lines still present verbatim. Two submissions that both reach full marks are not equivalent
+    engineering if one changed two lines and the other rewrote the file.
+    """
+    before, after = starter.splitlines(), (produced or "").splitlines()
+    added = removed = kept = 0
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=before, b=after, autojunk=False).get_opcodes():
+        if tag == "equal":
+            kept += i2 - i1
+        elif tag == "delete":
+            removed += i2 - i1
+        elif tag == "insert":
+            added += j2 - j1
+        elif tag == "replace":
+            removed += i2 - i1
+            added += j2 - j1
+    return {
+        "churn": added + removed,
+        "lines_added": added,
+        "lines_removed": removed,
+        "starter_lines_kept": round(kept / len(before), 4) if before else 1.0,
+    }
+
+
 def grade_code(
-    scenario: str, code: str, *, sandboxed: bool = True
+    scenario: str, code: str, *, trusted_repo_starter: bool = False
 ) -> tuple[list[tuple[str, bool]] | None, str | None]:
-    """Grade code in Docker, or trusted repository starters locally for the offline self-test."""
+    """Grade code in the Docker sandbox.
+
+    The parameter is named for the ONLY thing that may take the local path: a starter file the
+    repository itself maintains. It defaults to False so that a caller passing model output gets
+    the sandbox without having to remember to ask for it. The previous spelling was
+    `sandboxed: bool = True`, which reads as safe but let any call site opt out with a keyword,
+    and one did: agent_loop_sim.py passed `sandboxed=False` for raw model output.
+    """
     src = os.path.join(SCEN, scenario)
     tmp = tempfile.mkdtemp(prefix="autoevolve_prof_")
     try:
         shutil.copy(os.path.join(src, "grade.py"), tmp)
         with open(os.path.join(tmp, code_file(scenario)), "w", encoding="utf-8") as f:
             f.write(code)
-        if sandboxed:
+        if not trusted_repo_starter:
             proc = run_python(tmp, _SCORER, timeout=60)
         else:
-            # Self-test input is repository-maintained starter code, never model output.
+            # Keep the environment minimal, but not so minimal that the interpreter cannot
+            # start. On Windows, PATH alone is not enough: anything that initializes sockets
+            # (importing asyncio, which unittest.mock pulls in) fails with
+            # "WinError 10106: The requested service provider could not be loaded or
+            # initialized" without SystemRoot. This path only ever runs repository starter
+            # files, so the two extra variables cost nothing.
+            env = {"PATH": os.environ.get("PATH", "")}
+            if os.name == "nt":
+                for name in ("SystemRoot", "COMSPEC", "PATHEXT"):
+                    if name in os.environ:
+                        env[name] = os.environ[name]
             local = subprocess.run(
                 [sys.executable, "-I", "-B", "-c", _SCORER, tmp],
                 capture_output=True,
                 text=True,
                 timeout=60,
                 cwd=tmp,
-                env={"PATH": os.environ.get("PATH", "")},
+                env=env,
             )
             proc = local
         if proc.returncode != 0 or not proc.stdout.strip():
@@ -216,16 +280,25 @@ def call_groq(
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}"
             if e.code in (429, 500, 502, 503):
-                # Honor Groq's Retry-After (seconds) when present; the free-tier limit is
-                # tokens-per-minute and replenishes continuously, so a short wait clears it.
+                # Honor Groq's Retry-After in full. It is the server telling us exactly when the
+                # bucket refills, and it is routinely 200 seconds or more once a token-per-minute
+                # allowance is exhausted.
+                #
+                # This used to be clamped to 30 seconds, which turned one honest wait into a
+                # retry storm: sleep 30, get 429, sleep 30, ... six times, then record api_error
+                # and move on, having spent six requests to accomplish nothing and pushed the
+                # bucket further into deficit. Measured on an 8k-TPM model at six conditions, that
+                # clamp produced a 50 percent api_error rate and silently halved the usable
+                # sample. Waiting once, properly, costs the same wall clock and returns data.
                 retry_after = e.headers.get("retry-after") if e.headers else None
                 try:
                     wait = float(retry_after) if retry_after else 2 * (attempt + 1)
-                except ValueError:
+                except (TypeError, ValueError):
                     wait = 2 * (attempt + 1)
                 # Clamp below by 0: a malformed negative Retry-After would otherwise reach
-                # time.sleep(negative), which raises and aborts the whole run mid-loop.
-                time.sleep(min(max(wait, 0), 30) + 0.5)
+                # time.sleep(negative), which raises and aborts the whole run mid-loop. The upper
+                # clamp is a runaway guard, not a policy: it must stay above a realistic refill.
+                time.sleep(min(max(wait, 0), MAX_RETRY_WAIT_SECONDS) + 0.5)
                 continue
             return None, None, last
         except Exception as e:  # noqa: BLE001 - report any transport error, keep going
@@ -249,13 +322,58 @@ def token_report() -> int:
     return 0
 
 
+def regrade(path: str) -> int:
+    """Re-score a stored run against the CURRENT graders, without calling any model.
+
+    Scores from two grader revisions are not comparable, so when a ruler is fixed the honest
+    options are to re-run or to re-score. Re-running costs money and introduces fresh sampling
+    noise; re-scoring the exact same stored source is free and deterministic, which makes it the
+    better way to see what a grader fix did to a past result.
+    """
+    with open(path, encoding="utf-8") as handle:
+        rows = [json.loads(line) for line in handle if line.strip()]
+    missing = sum(1 for r in rows if not r.get("code"))
+    if missing:
+        print(f"warning: {missing} of {len(rows)} rows have no stored code and are left "
+              "unchanged (they predate code retention)", file=sys.stderr)
+    changed = 0
+    for row in rows:
+        if not row.get("code"):
+            continue
+        graded, error = grade_code(row["scenario"], row["code"])
+        if error:
+            row["outcome"], row["error"] = "grader_error", error
+            row["checks_passed"] = row["checks_total"] = None
+            continue
+        before = (row.get("checks_passed"), row.get("checks_total"))
+        row["checks_passed"] = sum(1 for _, ok in graded if ok)
+        row["checks_total"] = len(graded)
+        row["outcome"] = "pass" if row["checks_passed"] == row["checks_total"] else "fail"
+        row["error"] = None
+        # Backfill the work metrics too. Rows written before churn was recorded still carry the
+        # graded source, so their work axis is recoverable for free rather than lost.
+        starter = read_text(os.path.join("evals", "scenarios", row["scenario"],
+                                         code_file(row["scenario"])))
+        row.update(work_done(starter, row["code"]))
+        if before != (row["checks_passed"], row["checks_total"]):
+            changed += 1
+    out = path.replace(".jsonl", "") + ".regraded.jsonl"
+    with open(out, "w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    print(f"re-scored {len(rows) - missing} rows against the current graders "
+          f"({changed} changed score); wrote {out}")
+    return 0
+
+
 def selftest() -> int:
     print("selftest: grading each scenario's starter through the extract+grade pipeline")
     ok = True
     for scenario in sorted(TASKS):
         starter = read_text(os.path.join("evals", "scenarios", scenario, code_file(scenario)))
         wrapped = f"Here you go:\n```python\n{starter}\n```\n"
-        graded, error = grade_code(scenario, extract_code(wrapped), sandboxed=False)
+        # The only legitimate use of the local path: this input is the repository's own starter.
+        graded, error = grade_code(scenario, extract_code(wrapped), trusted_repo_starter=True)
         if graded is None:
             print(f"  [ERROR] {scenario}: grader failed to run ({error or 'harness bug'})")
             ok = False
@@ -275,17 +393,61 @@ def main() -> int:
     ap.add_argument("--conditions", default="control,karpathy,ponytail,core,full")
     ap.add_argument("--scenarios", default=",".join(sorted(TASKS)))
     ap.add_argument("--temperature", type=float, default=0.2)
+    ap.add_argument("--min-interval", type=float, default=0.0, metavar="SECONDS",
+                    help="Minimum gap between API calls, to stay UNDER the provider's "
+                         "tokens-per-minute allowance instead of discovering it. Reacting to 429s "
+                         "is far slower than avoiding them: an overshoot returns a Retry-After of "
+                         "several minutes, so one greedy call can cost more wall clock than "
+                         "pacing an entire scenario. Set it to roughly "
+                         "60 * (tokens per trial) / (tokens per minute).")
+    ap.add_argument("--max-tokens", type=int, default=1400,
+                    help="completion cap. Raise it for scenarios whose corrected file is long: "
+                         "a truncated reply grades as a failure the model did not actually make.")
     ap.add_argument("--seed", type=int, default=20260719, help="seed used to randomize trial order")
     ap.add_argument("--output", help="write trial metadata as JSON Lines for reproducible reports")
     ap.add_argument("--selftest", action="store_true", help="offline check of the grading pipeline")
     ap.add_argument("--tokens", action="store_true", help="print the context cost of each condition (no key needed)")
-    ap.add_argument("--no-sandbox", action="store_true", help="run evaluation without Docker sandbox (for local environments without Docker)")
+    ap.add_argument("--condition", action="append", default=[], metavar="NAME=PATH",
+                    help="add an extra arm from a file, repeatable. This is how you test a "
+                         "candidate revision of the mindset against the shipped one without "
+                         "editing anything: --condition core_v2=variants/core_v2.md. Keep or "
+                         "revert the revision based on the result, which is the loop this "
+                         "project describes, applied to the project itself.")
+    ap.add_argument("--regrade", metavar="JSONL",
+                    help="re-score a previous run's stored code against the current graders. "
+                         "No model calls. Use this after fixing a grader instead of paying for "
+                         "the same inferences twice.")
     args = ap.parse_args()
+
+    # Extra arms are registered before anything reads CONDITIONS, so --tokens prices them too.
+    for spec in args.condition:
+        name, _, path = spec.partition("=")
+        name, path = name.strip(), path.strip()
+        if not name or not path:
+            ap.error(f"--condition expects NAME=PATH, got {spec!r}")
+        if name in CONDITIONS:
+            ap.error(f"--condition {name} would shadow a built-in arm; pick another name")
+        if not os.path.isfile(os.path.join(ROOT, path)):
+            ap.error(f"--condition {name}: no such file: {path}")
+        CONDITIONS[name] = path
 
     if args.tokens:
         return token_report()
     if args.selftest:
         return selftest()
+    if args.regrade is not None:
+        # `is not None`, not truthiness: `--regrade ""` used to be falsy and fall straight through
+        # to a full benchmark run, which costs real inference. An empty or missing path must fail
+        # loudly rather than start spending money on something the caller did not ask for.
+        if not args.regrade.strip():
+            ap.error("--regrade needs a path to a results .jsonl file")
+        if not os.path.isfile(args.regrade):
+            ap.error(f"--regrade: no such file: {args.regrade}")
+        try:
+            ensure_ready()
+        except SandboxUnavailable as exc:
+            ap.error(str(exc))
+        return regrade(args.regrade)
 
     models = args.model or ["llama-3.1-8b-instant"]
     conditions = [c for c in args.conditions.split(",") if c]
@@ -296,11 +458,10 @@ def main() -> int:
     unknown_scenarios = sorted(set(scenarios) - set(TASKS))
     if unknown_conditions or unknown_scenarios:
         ap.error(f"unknown conditions={unknown_conditions}, scenarios={unknown_scenarios}")
-    if not args.no_sandbox:
-        try:
-            ensure_ready()
-        except SandboxUnavailable as exc:
-            ap.error(str(exc))
+    try:
+        sandbox_image = ensure_ready()
+    except SandboxUnavailable as exc:
+        ap.error(str(exc))
 
     jobs = [
         (model, scenario, condition, trial)
@@ -311,33 +472,75 @@ def main() -> int:
     ]
     random.Random(args.seed).shuffle(jobs)
     rows = []
+    last_call_at = [0.0]  # monotonic timestamp of the previous API call, for --min-interval
+    output_handle = None
+    if args.output:
+        os.makedirs(os.path.dirname(os.path.abspath(args.output)) or ".", exist_ok=True)
+        output_handle = open(args.output, "w", encoding="utf-8")
     for model, scenario, cond, trial in jobs:
         filename = code_file(scenario)
         starter = read_text(os.path.join("evals", "scenarios", scenario, filename))
         cond_text = read_text(CONDITIONS[cond]) if CONDITIONS[cond] else None
         msgs = build_messages(cond_text, TASKS[scenario], filename, starter)
         prompt_hash = hashlib.sha256(msgs[0]["content"].encode()).hexdigest()
-        content, tokens, error = call_groq(model, msgs, args.temperature, base_url=args.base_url, api_key=args.api_key)
+        if args.min_interval > 0:
+            gap = args.min_interval - (time.monotonic() - last_call_at[0])
+            if gap > 0:
+                time.sleep(gap)
+        last_call_at[0] = time.monotonic()
+        content, tokens, error = call_groq(model, msgs, args.temperature, max_tokens=args.max_tokens,
+                                           base_url=args.base_url, api_key=args.api_key)
         outcome = "api_error" if error else "fail"
+        passed_checks = checks_total = None
+        graded_code = None
         if not error:
-            graded, grade_error = grade_code(scenario, extract_code(content), sandboxed=not args.no_sandbox)
+            graded_code = extract_code(content)
+            graded, grade_error = grade_code(scenario, graded_code)
             if grade_error:
                 outcome, error = "grader_error", grade_error
-            elif graded and all(ok for _, ok in graded):
-                outcome = "pass"
-        rows.append({
+            elif graded:
+                # Keep the per-check count, not just all-or-nothing. A scenario with 7 checks
+                # carries 7 bits of signal; collapsing it to one pass/fail bit throws most of
+                # that away and is why a binary comparison needs several times more trials to
+                # detect the same effect.
+                passed_checks, checks_total = sum(1 for _, ok in graded if ok), len(graded)
+                if passed_checks == checks_total:
+                    outcome = "pass"
+        row = {
             "model": model, "scenario": scenario, "condition": cond, "trial": trial,
+            "grader_revision": GRADER_REVISION,
             "outcome": outcome, "prompt_tokens": tokens, "error": error,
+            "checks_passed": passed_checks, "checks_total": checks_total,
+            # The graded source is kept so a grader fix does not cost another paid inference
+            # run. Graders get revised (this repo has had to void whole result sets over it),
+            # and re-scoring stored code with `--regrade` is free and exactly reproducible.
+            "code": graded_code,
+            # Work, not price. See work_done(): churn is the size of the change, and it is the
+            # only axis on which this project's central claim (smallest correct diff) is testable.
+            **(work_done(starter, graded_code) if graded_code is not None else
+               {"churn": None, "lines_added": None, "lines_removed": None,
+                "starter_lines_kept": None}),
             "prompt_sha256": prompt_hash, "seed": args.seed,
-        })
+            "temperature": args.temperature, "max_tokens": args.max_tokens,
+            # Provenance travels with the result. docs/BENCHMARK.md asks for exact tool versions,
+            # and the grader is a tool: recording the digest says precisely which interpreter
+            # produced this verdict.
+            "sandboxed": True, "sandbox_image": sandbox_image,
+        }
+        rows.append(row)
+        # Append as we go, and flush. A long comparison is hours of paid inference, and writing
+        # only at the end meant a crash, a rate-limit abort or a stopped machine threw all of it
+        # away. Every completed trial is now durable the moment it finishes.
+        if output_handle is not None:
+            output_handle.write(json.dumps(row, sort_keys=True) + "\n")
+            output_handle.flush()
         detail = f" ({tokens} prompt tokens)" if tokens else ""
-        print(f"  {model} {scenario} {cond} #{trial}: {outcome}{detail}"
-              + (f" [{error}]" if error else ""))
+        score = f" {passed_checks}/{checks_total} checks" if checks_total else ""
+        print(f"  {model} {scenario} {cond} #{trial}: {outcome}{score}{detail}"
+              + (f" [{error}]" if error else ""), flush=True)
 
-    if args.output:
-        with open(args.output, "w", encoding="utf-8") as f:
-            for row in rows:
-                f.write(json.dumps(row, sort_keys=True) + "\n")
+    if output_handle is not None:
+        output_handle.close()
     _report(models, scenarios, conditions, rows)
     return 0
 
@@ -355,16 +558,34 @@ def _avg_tokens(rows):
     return f"{sum(toks) // len(toks)}" if toks else "?"
 
 
+def _graded(rows) -> str:
+    """Mean fraction of each scenario's own checks that passed: the higher-power statistic."""
+    fractions = [r["checks_passed"] / r["checks_total"] for r in rows if r.get("checks_total")]
+    if not fractions:
+        return "n/a"
+    return f"{100 * sum(fractions) / len(fractions):3.0f}% (n={len(fractions)})"
+
+
+def _churn(rows) -> str:
+    """Mean lines changed. The work axis: how much of the file did it disturb to get that score?"""
+    values = [r["churn"] for r in rows if r.get("churn") is not None]
+    if not values:
+        return "n/a"
+    return f"{sum(values) / len(values):.1f}"
+
+
 def _report(models, scenarios, conditions, rows):
     print("\n" + "=" * 72)
     print("PROFILE: pass rate by condition (higher is better; watch the token cost)")
     print("=" * 72)
     for model in models:
         print(f"\nmodel: {model}")
-        print(f"  {'condition':10}  {'overall':16}  {'avg prompt tokens':18}")
+        print(f"  {'condition':10}  {'strict pass':16}  {'graded checks':16}  "
+              f"{'lines changed':14}  {'avg prompt tokens':18}")
         for cond in conditions:
             sub = [r for r in rows if r["model"] == model and r["condition"] == cond]
-            print(f"  {cond:10}  {_rate(sub):16}  {_avg_tokens(sub):18}")
+            print(f"  {cond:10}  {_rate(sub):16}  {_graded(sub):16}  "
+                  f"{_churn(sub):14}  {_avg_tokens(sub):18}")
         print(f"\n  by scenario:")
         print("  " + " " * 14 + "  ".join(f"{c:>14}" for c in conditions))
         for scenario in scenarios:
@@ -373,8 +594,15 @@ def _report(models, scenarios, conditions, rows):
                 sub = [r for r in rows if r["model"] == model and r["scenario"] == scenario and r["condition"] == cond]
                 cells.append(f"{_rate(sub):>14}")
             print(f"  {scenario:14}" + "  ".join(cells))
-    print("\nRead it like a signal: if 'full' does not beat 'core', the extra ~125 lines are")
-    print("not earning their tokens. If 'core'/'full' trail 'control', the context is hurting.")
+    print("\nRead it like a signal: if 'full' does not beat 'core', the extra lines are not")
+    print("earning their tokens (run --tokens for the exact cost of each condition). If")
+    print("'core'/'full' trail 'control', the context is hurting. Compare the graded column:")
+    print("strict pass discards most of the signal each trial carries.")
+    print("\n'lines changed' is the WORK axis, and it is the one this project's central claim")
+    print("lives on. Two conditions that reach the same score are not equivalent if one changed")
+    print("three lines and the other rewrote the file: 'smallest correct diff' and 'deletion over")
+    print("addition' are claims about churn, not about tokens or pass rates. Divide the graded")
+    print("gain over the starter by the churn to compare conditions on work rather than price.")
 
 
 if __name__ == "__main__":

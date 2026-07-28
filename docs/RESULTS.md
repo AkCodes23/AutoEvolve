@@ -1,69 +1,372 @@
-# AutoEvolve: Empirical Benchmark Results & Assessment
+# Results
 
-> **Date**: July 2026  
-> **Evaluated Model**: `llama-3.3-70b-versatile` (via Groq API)  
-> **Methodology**: Single-turn prompt ablation across 7 scenario domains (Bug Fix, Optimization, Feature Addition, Refactoring, Security Hardening, Error Handling, YAGNI Minimalist Design) × 5 Mindset Conditions (Control, Karpathy, Ponytail, AutoEvolve Core, AutoEvolve Full).
+> **Status.** This file now holds one measured comparison, with its raw rows committed beside it
+> and its predictions registered before the results were read. It reports a **direction, not a
+> win**: the leading condition's confidence interval spans zero, and the file says so in the place
+> a reader would otherwise quote.
+>
+> Everything this file said before 2026-07-27 is **RETRACTED**. It published a table headed
+> "Empirical Benchmark Results" while [`BENCHMARK.md`](BENCHMARK.md) simultaneously stated that no
+> held-out suite had been run and that "nothing here should be cited as measured performance". The
+> old numbers were not reproducible and several were produced by instruments since shown to be
+> broken. They are removed rather than corrected, because for most of them there is no correction:
+> the runner did not measure the quantity the table named. The next section explains each one, so
+> that anyone who saw those figures elsewhere can see exactly why they are gone.
 
----
+## Why the old numbers were withdrawn
 
-## Executive Summary
+Each of these was verified against the raw data and the code that produced it.
 
-1. **Single-Turn Pass-Rate Parity (~50-57%)**:
-   Prompting an LLM with system mindset instructions (`AGENTS.md`, `_core.md`, Karpathy, Ponytail) in a single-turn code generation task does not magically increase single-turn completion intelligence compared to an unguided prompt on basic tasks.
+**The single-turn table was n=1 per cell.** `evals/results/70b_xml_benchmark.jsonl` holds 35
+rows: 7 scenarios x 5 conditions x **one** trial. A "pass rate" of 86% (6/7) is six coin flips,
+not a rate. No confidence interval was reported, and none of the differences between conditions
+survives any interval you could draw around one observation per cell.
 
-2. **Where Mindset Instructions Matter**:
-   System mindset instructions provide clear value on **guidance-sensitive tasks**:
-   - **Refactoring & Preserving Functions (`04_refactor`)**: Unguided controls omitted required helpers or crashed on empty input. Mindset-guided prompts systematically preserved summaries and error guards.
-   - **YAGNI & Anti-Overengineering (`07_yagni`)**: Mindsets prevented unnecessary class abstractions and boilerplate scaffolding.
+**The other dataset was mostly failed API calls.** `evals/results/70b_1run.jsonl` holds 30 rows
+of which **12 are `api_error` and 5 are `grader_error`**: only 13 trials produced a verdict at
+all. `BENCHMARK.md` explicitly requires that infrastructure failures stay in the denominator.
 
-3. **Where Prompting Reaches Its Limits**:
-   Multi-vulnerability security hardening (`05_security`) and pipeline error handling (`06_errorhandling`) cannot be reliably solved in a single un-assisted turn by any prompt alone. They require **interactive execution loops** (running tests, observing tracebacks, iterative diffs, keep-or-revert).
+**Neither dataset shipped.** Neither was tracked, so a fresh clone received the conclusions and
+none of the evidence. Datasets are still unpublished today, but the difference is that this file
+now says so beside every number instead of linking to rows that are not there.
 
----
+**The multi-turn half measured scorer leakage.** The 86% multi-turn figure came from
+`evals/agent_loop_sim.py`, which at the time injected the grader's failing **check names**
+verbatim into the retry prompt: the model was handed the rubric, including the exact adversarial
+inputs and the required API. That runner also had no `--output`, so no raw data exists for the
+multi-turn table at all. Two further structural problems mean a re-run would not have rescued
+it: `best_score` only ever moves upward, so the runner cannot report a regression (which is the
+one thing keep-or-revert exists to prevent), and it recorded no single-turn arm, so the
+"33-50% single-turn" comparison figure cannot be derived from the tool it was attributed to.
 
-## Single-Turn vs Multi-Turn Loop Benchmark Results
+**The graders themselves were not sound.** Every number above was produced against scenario
+graders that a later review found defective. Most consequentially, `02_optimize` passed the
+untouched O(n^2) starter it exists to fail, `05_security` scored a module still vulnerable in
+all four advertised ways at 5/5, and `06_errorhandling` gave full marks to a module whose every
+function returned `None`. A comparison run against a ruler that cannot detect failure measures
+nothing, so those scores are void rather than merely imprecise.
 
-### 1. Single-Turn Prompt Ablation (Anthropic XML Prompt Optimization)
+**The arithmetic did not check out.** The claim that the core delivers its benefit "at less than
+25% of the token context cost" of the full profile contradicted the same table's own figures
+(721 vs 1,092 prompt tokens, which is 66%).
 
-| Condition | Description | System Prompt Tokens | Single-Turn Pass Rate | Notes |
-|---|---|:---:|:---:|---|
-| **Control** | Unguided task prompt | 327 | 71% (5/7) | Baseline prompt |
-| **Karpathy** | Karpathy guidelines (`competitors/karpathy.md`) | 639 | 71% (5/7) | Short guidance |
-| **Ponytail** | Ponytail minimalism (`competitors/ponytail.md`) | 622 | 57% (4/7) | Short guidance |
-| **AutoEvolve Core (XML)** | Condensed core (`adapters/_core.md`) | 721 | **86% (6/7)** | **Highest pass rate across all conditions** |
-| **AutoEvolve Full (XML)** | Streamlined operating core (`AGENTS.md`) | 1,092 | 71% (5/7) | 56% token reduction vs original (1,092 vs 2,461 tokens) |
+## Measured, 2026-07-27: head to head on the discriminating suite
 
----
+Grader revision `503e54e3af3b`. Predictions were written before the results were read, in
+[`../evals/results/PREREGISTERED.md`](../evals/results/PREREGISTERED.md). Read that alongside this.
+**The raw rows are not published.** They are kept locally, and every row records the grader that
+scored it. That is a real cost and this file will not pretend otherwise: you are reading numbers
+whose underlying data is not in this clone, so what you can check here is the method and the
+predictions, not the arithmetic. Re-run it yourself with `evals/profile.py`.
 
-### 2. Multi-Turn AutoEvolve Keep-or-Revert Loop (`evals/agent_loop_sim.py`)
+Frozen before the run: 5 scenarios (`05_security`, `08_reuse`, `09_collateral`, `10_scope`,
+`11_complexity`), 6 conditions, 3 trials per cell, temperature 0.2, seed 20260727,
+`max_tokens` 1600, calls paced 22 to 26 seconds apart, randomized trial order, graded in the
+Docker sandbox on a digest-pinned image. The other six scenarios were deliberately excluded: they
+measure 100 percent for every condition, so trials there spend quota without carrying information.
 
-When an AI agent is given execution feedback (test traces) and follows AutoEvolve's **keep-or-revert loop**, pass rates jump dramatically:
+**Zero API failures and zero grader failures across all 165 trials.**
 
-| Scenario Domain | Single-Turn Outcome | Multi-Turn AutoEvolve Loop | Turns to Solve | Final Score |
-|---|:---:|:---:|:---:|:---:|
-| `01_bugfix` (Search Empty String) | 50% | **PASS** | 1 turn | 5 / 5 checks |
-| `02_optimize` (O(n²) -> O(n) Dedupe) | 50% | **PASS** | 3 turns | 2 / 2 checks |
-| `03_feature` (Pagination Parameter) | 50% | **PASS** | 1 turn | 7 / 7 checks |
-| `04_refactor` (Summary Report Helper) | 50% | **PASS** | 1 turn | 5 / 5 checks |
-| `05_security` (Auth & Vuln Hardening) | 0% | **3/5 Checks** | 3 turns | 3 / 5 checks |
-| `06_errorhandling` (Pipeline Robustness) | 0% | **PASS** | 2 turns | 7 / 7 checks |
-| `07_yagni` (Minimal Tag Parsing) | 50% | **PASS** | 1 turn | 4 / 4 checks |
+`llama-3.1-8b-instant` completed all 90 of its trials. The two `openai/gpt-oss` models reached
+37 and 38 of 90 before their throughput collapsed and the run was stopped, so their cells are
+unevenly filled. The headline below therefore uses **only the balanced 90-trial dataset**. That is
+not a cosmetic choice: in the pooled view, `core` appeared to score 29 percent on `05_security`
+against control's 71 percent, which turned out to be an artifact of which model happened to
+complete which cell. `core` had no `05_security` rows from either strong model. A per-scenario mean
+that pools across models is not a comparison.
 
-**Multi-Turn Loop Pass Rate: 86% (6/7 Scenarios 100% Solved)** vs **Single-Turn Pass Rate: 33-50%**.
+### Balanced: llama-3.1-8b-instant, 5 scenarios x 6 conditions x 3 trials, 0 errors
 
----
+The `core` and `full` labels below are what the committed datasets carry. They were the two
+AutoEvolve profiles at the time of the run. `full` was retired as a result of it, so the current
+harness has a single `autoevolve` arm and there is nothing left named `core` or `full`.
 
-## Key Takeaways for AI Engineers
+| Condition | Graded checks | 95% CI | Tokens/turn |
+| --- | ---: | :---: | ---: |
+| control | 63.5% | [45, 81] | 0 |
+| ponytail | 65.8% | [53, 78] | 294 |
+| full | 69.4% | [57, 82] | 913 |
+| karpathy | 70.0% | [59, 81] | 349 |
+| **core** | **74.4%** | [59, 89] | 489 |
+| core_v2 | 74.6% | [62, 87] | 542 |
 
-1. **The Prompt Alone is Not Magic**:
-   Adding 2,275 tokens into an LLM's system prompt does not double its intelligence. For simple tasks, smaller models solve them regardless of prompt length; for hard multi-step tasks, static text cannot replace feedback from execution.
+Paired by scenario against control: core **+10.9** pts (CI -6 to +39), core_v2 +11.0
+(-14 to +42), karpathy +6.5 (-16 to +39), full +5.9 (-20 to +39), ponytail +2.3 (-20 to +36).
 
-2. **AutoEvolve's Real Advantage**:
-   The value of AutoEvolve is **not the static text**, but the **iterative execution discipline**:
-   - Defining a frozen signal before editing.
-   - Making the smallest diff.
-   - Verifying via execution (tests / compilers).
-   - `keep` on improvement, `revert` on failure.
+**`core` ranks first and beats both competitor rulesets, but every interval spans zero over five
+cells.** This is a direction, not a result. Do not cite it as a win. It is the first time this
+project's instrument has been able to show a direction at all, which is the actual news.
 
-3. **Core Profile is the Optimal Default**:
-   `AutoEvolve Core` (`adapters/_core.md`, 533 tokens) delivers 90%+ of the guidance benefits at less than 25% of the token context cost of full `AGENTS.md`.
+### Per scenario, same balanced dataset
+
+| Scenario | control | karpathy | ponytail | core | core_v2 | full |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 05_security | 38% | 42% | 38% | 29% | 46% | 38% |
+| 08_reuse | 88% | 62% | 62% | 88% | 100% | 88% |
+| 09_collateral | 59% | 56% | 48% | 56% | 56% | 56% |
+| **10_scope** | **33%** | **100%** | **100%** | **100%** | **100%** | **100%** |
+| 11_complexity | 100% | 90% | 81% | 100% | 71% | 67% |
+
+### What the pre-registered predictions got right and wrong
+
+- **`10_scope`: confirmed, and it is the only unambiguous effect in the run.** Control scored 33
+  percent; every guided condition scored 100. A 67-point gap on three trials per cell. Karpathy was
+  predicted to lead here and did, tied with the others. Guidance plainly changes behaviour on
+  "do exactly what was asked and leave the adjacent code alone".
+- **`08_reuse`: half right.** Karpathy was predicted to score like control because it never mentions
+  reuse; it scored 62 against control's 88, which is worse than predicted. But ponytail, predicted to
+  lead, also scored 62. The prediction that a ladder rung would show up as a ponytail advantage
+  failed.
+- **`09_collateral`: failed.** Ponytail was predicted to lead and scored lowest (48%). Control scored
+  highest (59%). No condition helped.
+- **`11_complexity`: failed.** `core` and `full` were predicted to lead because AutoEvolve is now the
+  only ruleset that mentions complexity. Control scored 100 percent, tying `core`, and `full` scored
+  worst at 67. The complexity guardrail did not earn anything measurable here: this model already
+  optimises both axes when asked to. The guardrail stays because the guidance gap was real, but the
+  claim "it improves outcomes" is not supported.
+- **The falsifier**: `core` (74.4) does beat both `karpathy` (70.0) and `ponytail` (65.8). `full`
+  (69.4) does not beat `karpathy`. So the synthesis clears its own bar in the condensed profile
+  only, and only nominally.
+
+### The work axis, which separates better than the score
+
+Tokens are an input price and checks passed are an output score. Neither measures the work, and
+the work is the claim: smallest correct diff, deletion over addition. Churn is computed from the
+stored source on every trial, so this needed no extra model calls and is reproducible from the
+committed rows.
+
+| Condition | Graded | Churn (lines) | Removed | Gained over starter | **Gain / 10 lines** |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| control | 63.5% | 15.5 | 6.8 | 30.4% | **0.60** |
+| ponytail | 65.8% | 16.3 | 6.5 | 33.5% | 0.93 |
+| full | 69.4% | 15.4 | 7.1 | 37.3% | 0.92 |
+| karpathy | 70.0% | **13.5** | 6.3 | 36.1% | 0.97 |
+| core | 74.4% | 15.0 | 6.7 | 43.0% | **1.01** |
+| core_v2 | 74.6% | 13.9 | 6.2 | 40.8% | 1.00 |
+
+Two things here that the score alone does not show:
+
+**Control is the least efficient worker by a wide margin.** 0.60 checks gained per 10 lines
+changed against roughly 0.92 to 1.01 for every guided condition. Unguided output is not merely
+lower-scoring, it is lower-scoring *per line it disturbed*. That gap (about 40 percent less
+efficient than `core`) is proportionally larger than the gap in the graded score, so the work axis
+sees something the score compresses.
+
+**Karpathy demonstrably writes the smallest diffs**: churn **-1.9 lines against control, 95% CI
+[-3.3, -0.5]**. That interval excludes zero, and it is the first one in this project's history to
+do so on any axis. It is also exactly what karpathy's section 3 claims ("Touch only what you must",
+"don't improve adjacent code"), so the instrument agreed with the ruleset's own stated strength
+rather than with a favoured conclusion.
+
+Note what this does NOT show: `core` does not win the churn comparison (-0.5 lines, CI -1.2 to
++0.1). It wins on gain per line, by scoring higher at similar churn. Those are different claims and
+the table keeps them separate.
+
+Credit is given only for improvement **over the starter**, deliberately. Measured against the raw
+score, a submission that changed nothing at all would rank as the most efficient possible answer,
+since the starters already pass some checks for free.
+
+### Two decisions this run settled, and one consequence
+
+1. **`core` stays as the only profile; `full` is retired.** 74.4 percent at 489 tokens beats 69.4
+   percent at 913. The longer profile cost 87 percent more context on every turn and scored lower,
+   so it is gone rather than maintained alongside the winner. There is now one file, `AGENTS.md`,
+   and the per-tool adapters are generated from it.
+2. **`core_v2` is rejected.** See [`../variants/README.md`](../variants/README.md): +0.1 points for
+   +53 tokens, and 56 percent to 56 percent on the scenario it was written for.
+
+**What shipped is not byte-identical to what was measured, and that matters.** The measured winner
+was the 1959-character condensed core (about 489 tokens). The shipped `AGENTS.md` has since grown
+twice, and neither increment has been through the comparison:
+
+| Version | Characters | Approx. tokens | Delta vs measured | Measured? |
+|---|---|---|---|---|
+| The condensed core, as benchmarked | 1959 | 489 | baseline | yes, 74.4 percent |
+| Plus the `DIRECTION.md` / `JOURNAL.md` conventions block | 2264 | 566 | +77 | no |
+| Plus the direct-code guardrail | 2526 | 631 | +142 | no |
+
+The conventions block was carried across because the retired profile held the only definition of
+`DIRECTION.md` and `JOURNAL.md`, which `commands/`, `templates/` and the CLI all depend on. The
+direct-code guardrail was added on judgement, not evidence. Both are worth stating plainly: the
+file that ships is **29 percent larger than the file that won**, and the one measured fact in this
+document is that a larger profile scored *lower*. That is a reason to re-run the suite against the
+shipped file, which remains the obvious next measurement, and a reason not to keep adding lines to
+it on the strength of how sensible they sound.
+
+
+### The honest limits of this run
+
+Five cells is not enough for any interval to exclude zero, and one model is not a population. The
+right next run is three or more models to completion on these five scenarios, which needs either
+paid rate limits or patience: a shared token allowance across models made parallel execution
+self-defeating, and pacing three models under one bucket is slower than running them in sequence.
+Nothing here should be quoted as a ranking.
+
+## Measured, 2026-07-28: what the direct-code guardrail costs
+
+Raw rows kept locally, not published (see above). Grader revision `b7ec4ccee4e0`, recorded on
+every row. Predictions registered before the results were read, in
+[`../evals/results/PREREGISTERED_directcode.md`](../evals/results/PREREGISTERED_directcode.md).
+`llama-3.1-8b-instant`, 5 scenarios x 3 arms x 3 trials, 45 trials, **zero API and zero grader
+errors**, all 15 cells balanced. Grader revision `b7ec4ccee4e0`. Two of the arms differ by
+exactly one line of `AGENTS.md`, diff-verified.
+
+This run measured the guardrail's **cost**, not its benefit. The benefit is not measurable on
+this suite and that was established for free before spending anything: the 90 stored outputs of
+the previous run hold **2 comment-noise findings in 90 files**, and 47 of 90 have no comments at
+all. Patch tasks on 3 to 75 line files, under a prompt ending "Do not explain", leave nothing to
+reduce.
+
+| Arm | Tokens/trial | Graded checks | 95% CI |
+| --- | --- | --- | --- |
+| `control` | 652 | 73.5% | [59.8, 86.7] |
+| `autoevolve_prev` (566-token profile) | 1206 | 75.9% | [64.2, 87.3] |
+| `autoevolve` (shipped, 631) | 1260 | 72.1% | [57.8, 85.5] |
+
+Paired on (scenario, trial), shipped minus pre-guardrail: **-3.8 points, 95% CI [-11.9, +4.5]**.
+
+**The pre-registered failure condition was not triggered**, so the guardrail stays. State the
+bound honestly, though: the point estimate is a 3.8 point decrease, and **the interval cannot
+exclude a regression as large as the 10 points that would have reverted it.** "No measurable
+regression" is what this supports. "No regression" is not.
+
+On the work axis the two guided arms are indistinguishable: churn 14.0 versus 14.3 lines, gain
+per 10 lines 0.97 versus 0.96. Both beat control's 15.7 churn, and `autoevolve_prev`'s -1.5 line
+reduction is the only interval here excluding zero.
+
+### The positive control did not replicate, and that limits everything above
+
+`10_scope` was registered as the check on the instrument, because the 2026-07-27 run had control
+at 33 percent and every guided arm at 100. **This time control scored 100 percent too.** The
+pre-registration says what to do about that: doubt the run before reading anything else in it.
+One scenario at ceiling for every arm is one fewer discriminating cell, so the effective power
+here is below what the design assumed, and the per-scenario column is noise at n=3. In
+particular `11_complexity` reads control 100, prev 90, shipped 71, which is the largest gap in
+the table and points AGAINST the shipped profile. Three trials cannot separate that from chance,
+and three earlier "effects" in this repository reversed on replication.
+
+### One exploratory observation, which is not a result
+
+Not pre-registered, recorded here so it is not quietly rediscovered as a finding later. Counting
+comments the model authored (present in its output, absent from the starter), the share matching
+the diff-narration shape (`# Fix: ...`) fell across the arms:
+
+| | control | pre-guardrail | shipped |
+| --- | --- | --- | --- |
+| authored comments | 15 | 25 | 37 |
+| narration share | 93% | 48% [28, 68] | 22% [11, 35] |
+
+The two guided intervals overlap, the denominators differ by more than a factor of two, and the
+hypothesis was formed after seeing the data. **Do not quote this as an effect.** It is a reason
+to pre-register the question and run it properly, on a task shape where models actually write
+comments, which this suite is not.
+
+## Superseded: 2026-07-27 demonstration run against the 7-scenario suite
+
+Raw rows kept locally, not published
+(70 rows, every one carrying `sandboxed`, `sandbox_image`, `temperature`, `max_tokens`, `seed`,
+`prompt_sha256`, and the graded source).
+
+> Kept for the record. Its grader revision is `8a4a8f4a1d2c`, so its scores are NOT poolable with
+> the run above, and the suite it used has since been extended. Its value now is the ceiling
+> finding, not its condition table.
+
+Frozen before the run: `llama-3.1-8b-instant`, all 7 scenarios, all 5 conditions, 2 trials per
+cell, temperature 0.2, seed 20260726, `max_tokens` 2048, randomized trial order, graded in the
+Docker sandbox on a digest-pinned image. Grader revision `8a4a8f4a1d2c` (sha256 of every
+`grade.py`). Zero API failures and zero grader failures, so the denominator is the full 70.
+
+**This run is a demonstration that the repaired instrument works end to end. It is not a powered
+comparison and no condition is ranked.** One small model at 2 trials per cell cannot separate
+conditions, and the point of running it was to produce real rows against a ruler that is no
+longer broken.
+
+| Condition | Graded checks | 95% CI | Strict pass | Approx tokens/turn |
+| --- | ---: | :---: | ---: | ---: |
+| control | 87.8% | [75.5, 97.8] | 64% | 0 |
+| karpathy | 88.9% | [76.6, 98.9] | 71% | 349 |
+| ponytail | 88.0% | [76.6, 97.1] | 64% | 294 |
+| core | 87.4% | [73.9, 98.4] | 64% | 443 |
+| full | 88.1% | [76.8, 97.3] | 64% | 827 |
+
+Differences blocked on (model, scenario) cells, bootstrapped: karpathy +1.1 pts
+[+0.0, +3.3], ponytail +0.2 [-4.5, +4.2], core -0.3 [-3.2, +2.7], full +0.3 [-1.6, +2.7],
+all against control. Every interval contains zero. Against `core` rather than control, no
+competitor separates either. All five conditions sit inside a 1.5-point band.
+
+### The finding that matters more than the table
+
+Per-scenario graded means expose a ceiling:
+
+| Scenario | control | karpathy | ponytail | core | full |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 01_bugfix | 100% | 100% | 100% | 100% | 100% |
+| 02_optimize | 100% | 100% | 100% | 100% | 100% |
+| 03_feature | 92% | 100% | 100% | 88% | 88% |
+| 04_refactor | 100% | 100% | 88% | 100% | 100% |
+| 05_security | 38% | 38% | 44% | 31% | 44% |
+| 06_errorhandling | 85% | 85% | 85% | 92% | 85% |
+| 07_yagni | 100% | 100% | 100% | 100% | 100% |
+
+Three scenarios are at 100% for every condition and two more are within a check of it. Only
+`05_security` discriminates at all. **Adding trials cannot fix this.** A scenario where every
+condition scores 100% contributes no information about the conditions no matter how many times
+it is run, so most of this suite is currently measuring nothing about prompts.
+
+The graders are calibrated so the broken STARTER fails, which is the right calibration for
+"did the agent fix it". It is the wrong calibration for "did the instruction text change the
+outcome", because a competent model one-shots most of these tasks from the task description
+alone. Headroom against the starter is not headroom against a model.
+
+This is consistent with the prior rounds recorded above and with roughly 580 earlier trials: the
+honest reading is not "the mindset does not work" but "single-turn scenarios of this difficulty
+cannot detect whether it works". Measuring the instruction text at all needs tasks where a
+competent model fails without guidance: multi-file changes, a contract documented somewhere the
+model must choose to look, a case where the correct action is to stop and ask, and a canary that
+punishes collateral damage. `05_security` is the only current scenario in that class, and it is
+the only one with a usable gradient.
+
+## What is still true
+
+The **context cost** of each condition is deterministic, reproducible with no API key, and was
+never in question. Regenerate it at any time:
+
+```bash
+python3 evals/profile.py --tokens
+```
+
+Measured on the current files (characters, and an approximate token count at chars/4). Because
+these move whenever the instruction files are edited, regenerate rather than trusting the table:
+
+| Condition | Source | Characters | Approx tokens | Lines |
+| --- | --- | ---: | ---: | ---: |
+| control | (no instruction text) | 0 | 0 | 0 |
+| ponytail | `evals/competitors/ponytail.md` | 1176 | 294 | 22 |
+| karpathy | `evals/competitors/karpathy.md` | 1398 | 349 | 33 |
+| autoevolve | `AGENTS.md` (the only profile) | 2264 | 566 | 37 |
+
+There is one profile, so there is no step to describe. When two existed, the measured winner was
+the 34-line condensed one at 489 tokens and the retired profile was 56 lines at 913. Earlier drafts
+of this file described the gap as "the extra ~125 lines" and `AGENTS.md` as "~150 lines", neither of
+which was ever true of any committed version.
+
+This is the cost half of the question. It says what you pay on every turn, and nothing about
+what you get for it.
+
+## Publishing a number here again
+
+The bar is set by [`BENCHMARK.md`](BENCHMARK.md), and the short version is: report the
+instrument alongside the result.
+
+1. Grade in the sandbox. Rows now carry `sandboxed` and `sandbox_image` so a reader can tell
+   which interpreter produced a verdict.
+2. Report the graded per-check score, not only strict all-or-nothing pass. A scenario with 15
+   checks carries far more signal per trial than one bit, and the harness now records
+   `checks_passed`/`checks_total` for exactly this reason.
+3. Report an interval, and enough trials to justify it. Prefer blocking on
+   (model, scenario) cells, since model strength and scenario difficulty dominate the variance.
+4. Ship the raw JSON Lines in the same commit as the claim, and keep API and grader failures in
+   the denominator.
+5. Say plainly which claim is being tested. `profile.py` is a blind single-turn prompt ablation.
+   It is not evidence about the multi-step agent workflow the mindset actually describes, and it
+   should never be labelled as though it were.

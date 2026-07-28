@@ -22,7 +22,21 @@ from sandbox import SandboxUnavailable, ensure_ready, run_python
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONDITIONS = {"control": None, "core": ROOT / "adapters" / "_core.md", "full": ROOT / "AGENTS.md"}
+# The same five arms profile.py uses. Sharing arm names across the two harnesses while
+# benchmarking different sets would let a reader compare numbers that are not comparable, and
+# without the two competitor arms this runner cannot test the project's central claim: that the
+# synthesis beats the sources it synthesizes.
+CONDITIONS = {
+    "control": None,
+    "karpathy": ROOT / "evals" / "competitors" / "karpathy.md",
+    "ponytail": ROOT / "evals" / "competitors" / "ponytail.md",
+    "autoevolve": ROOT / "AGENTS.md",
+}
+# Everything else is withheld from the runner. Forwarding the whole host environment handed
+# every credential on the machine to an arbitrary user-supplied command, on every trial.
+ENV_ALLOWLIST = ("PATH", "LANG", "LC_ALL", "TEMP", "TMP", "TMPDIR") + (
+    ("SystemRoot", "COMSPEC", "USERPROFILE", "APPDATA", "LOCALAPPDATA") if os.name == "nt" else ("HOME",)
+)
 SCORER = (
     "import sys, json, importlib.util, os\n"
     "d = sys.argv[1]\n"
@@ -42,6 +56,16 @@ def load_manifest(path: Path) -> list[dict]:
     for task in tasks:
         if not required.issubset(task):
             raise ValueError(f"task is missing required fields: {required - set(task)}")
+    # A manifest that silently covers fewer scenarios than the repo ships makes this runner and
+    # profile.py publish rates over different denominators under the same condition names.
+    scenarios = ROOT / "evals" / "scenarios"
+    if scenarios.is_dir():
+        on_disk = {d.name for d in scenarios.iterdir() if d.is_dir() and not d.name.startswith((".", "__"))}
+        covered = {Path(t["source"]).name for t in tasks}
+        missing = sorted(on_disk - covered)
+        if missing:
+            print(f"warning: manifest covers {len(covered)} of {len(on_disk)} scenarios; "
+                  f"not benchmarked: {', '.join(missing)}", file=sys.stderr)
     return tasks
 
 
@@ -69,7 +93,16 @@ def grade(task: dict, agent_workspace: Path) -> tuple[bool | None, str | None]:
         shutil.rmtree(grade_workspace, ignore_errors=True)
 
 
-def run_trial(task: dict, condition: str, runner: list[str], timeout: int) -> tuple[str, str | None]:
+def runner_environment(task_path: Path, condition: str, passthrough: list[str]) -> dict:
+    """Build the child environment from an allowlist, plus whatever the operator named."""
+    environment = {k: os.environ[k] for k in ENV_ALLOWLIST if k in os.environ}
+    environment.update({k: os.environ[k] for k in passthrough if k in os.environ})
+    environment.update({"AUTOEVOLVE_TASK_PATH": str(task_path), "AUTOEVOLVE_CONDITION": condition})
+    return environment
+
+
+def run_trial(task: dict, condition: str, runner: list[str], timeout: int,
+              passthrough: list[str]) -> tuple[str, str | None]:
     source = source_path(task)
     workspace = Path(tempfile.mkdtemp(prefix="autoevolve_agent_"))
     try:
@@ -80,8 +113,7 @@ def run_trial(task: dict, condition: str, runner: list[str], timeout: int) -> tu
         instruction = CONDITIONS[condition]
         if instruction:
             shutil.copy2(instruction, repo / "AGENTS.md")
-        environment = os.environ.copy()
-        environment.update({"AUTOEVOLVE_TASK_PATH": str(task_path), "AUTOEVOLVE_CONDITION": condition})
+        environment = runner_environment(task_path, condition, passthrough)
         try:
             process = subprocess.run(runner, cwd=repo, env=environment, timeout=timeout, check=False)
         except subprocess.TimeoutExpired:
@@ -104,6 +136,10 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--seed", type=int, default=20260719)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--env-passthrough", action="append", default=[], metavar="NAME",
+                        help="Forward this environment variable to the runner (repeatable). "
+                             "Everything not named here and not in the allowlist is withheld, so "
+                             "an agent runner needing an API key must be given it explicitly.")
     args = parser.parse_args()
     if args.runs < 1 or args.timeout < 1:
         parser.error("--runs and --timeout must be positive")
@@ -119,7 +155,7 @@ def main() -> int:
     random.Random(args.seed).shuffle(jobs)
     rows = []
     for task, condition, trial in jobs:
-        outcome, error = run_trial(task, condition, runner, args.timeout)
+        outcome, error = run_trial(task, condition, runner, args.timeout, args.env_passthrough)
         row = {"task": task["id"], "condition": condition, "trial": trial, "outcome": outcome,
                "error": error, "seed": args.seed}
         rows.append(row)

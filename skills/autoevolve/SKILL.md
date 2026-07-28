@@ -31,7 +31,9 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's roo
    change; prefer a surgical diff to a rewrite.
 5. **Verify** in cascade: does it run? → is it correct? → *only then* is it smaller /
    faster / cleaner? Correctness and safety gate everything; a wrong answer is wrong no
-   matter how short. If the signal is noisy, take the **median** of a few runs.
+   matter how short. If the signal is noisy, take the **median** of a few runs. Then confirm you did not
+   move the goalposts: `scripts/ruler.py` reports what your change did to the tests that judge
+   it. A green suite you edited yourself is not evidence.
 6. **Keep or revert.** Keep if it's strictly better with no regression, *or*
    neutral-but-simpler, *or* a deletion, and still correct; commit it (new best).
    Otherwise revert, and keep the lesson. A reverted experiment still made progress: it
@@ -68,10 +70,43 @@ I continue?"; **pause for a human** before anything hard to reverse (deleting da
 force-pushing, destructive or outbound actions) or on genuine ambiguity. Leave an audit
 trail (small commits plus the journal) so a human can trust and roll back your work.
 
+"Keep going when stuck" is bounded: **stop after 10 loops** and check in with a human, as
+`AGENTS.md` requires. Persevering through a hard problem is the
+point; looping past 10 without new information is not.
+
+When reverting, restore only the paths you touched (from `HEAD`, so a staged change is also
+undone) and delete only the untracked files you created. Never bulk-discard a dirty tree: work
+you did not create may be in it, and `git checkout -- .` destroys it unrecoverably.
+
+## Modes
+
+The mode sets ceremony, not rigor. Correctness, validation, and security are never reduced.
+
+- `quick`: a small, obviously-scoped change. Define the signal, make the diff, verify, keep or
+  revert. Journal one line. No branching.
+- `default`: the full loop as described above, one hypothesis at a time against `HEAD`.
+- `deep`: hold competing candidates on `evolve/<niche>` branches, score each against the same
+  frozen signal, and promote the winner to `HEAD`. Use when several approaches are plausible and
+  you want to compare them rather than guess.
+
+## Write direct code
+
+Say it in the code, not beside it. Delete comments that restate what the line already says,
+and never commit commented-out code: the history holds it, and a commented block is a claim
+nothing verifies. A comment earns its place only by recording what the code cannot, which is
+almost always a *why*: a measured result, an alternative you tried and rejected, a caveat that
+would otherwise be rediscovered the hard way. When you feel the urge to narrate a line, rename
+something instead. Docstrings follow the same test: one that only restates the function's name
+and parameters is a maintenance cost with no reader.
+
+`scripts/comments.py` does this check for you rather than asking you to remember it. Run it on
+what you changed at step 8 and act on what it prints.
+
 ## Conventions
 
 - Mark a deliberate corner-cut with an `evolve:` comment naming the ceiling and the
   upgrade path (e.g. `# evolve: O(n^2) scan, fine < 10k rows; use a hash index above`).
+  This is a why, so it stays.
 - Non-trivial logic leaves **one** small runnable check behind; trivial one-liners need
   none.
 - Small commits are the experiment log; the current state is the best-known solution.

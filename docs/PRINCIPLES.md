@@ -28,6 +28,16 @@ symptom-patches across call sites. Crucially, simplicity isn't a rival to "make 
 go up", it's *part of* the number: a tiny gain bought with hacky complexity silts the
 codebase into a state where the *next* improvement is harder, so it isn't really a gain.
 
+The same argument applies to prose sitting next to code. A comment that restates the line
+below it is a second copy of the truth with nothing keeping the two in sync, so it does not
+stay true: it decays into a confident, wrong description that a reader trusts over the code.
+Commented-out code is the same trap with a stronger claim, and the history already holds it.
+What survives is the comment recording something the code genuinely cannot express, which is
+nearly always a *why*: a result that was measured, an alternative that was tried and
+rejected, a caveat that would otherwise be rediscovered the expensive way. Those are the
+sentences worth protecting, and they are the reason "delete comments" is a rule about
+restatement rather than a rule about volume.
+
 ### No single metric can be trusted
 Benchmarks saturate and measure the wrong thing; a single champion collapses into a local
 optimum. That's why you layer cheap hard-to-game checks with a never-drop canary and human

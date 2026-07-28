@@ -24,6 +24,6 @@ file here.
 The four inline adapters (`claude.md`, `cursor.mdc`, `windsurf.md`,
 `copilot-instructions.md`) carry the **same** condensed core; only their frontmatter
 differs. To keep them from drifting they are **generated** from one file: edit
-[`_core.md`](_core.md), then run `python3 ../scripts/build_adapters.py` to re-stamp all
+[`../AGENTS.md`](../AGENTS.md), then run `python3 ../scripts/build_adapters.py` to re-stamp all
 four. `python3 ../scripts/check.py` fails if they are ever out of date. The depth always
 lives in `AGENTS.md`; these exist only because some tools need the guidance inline.

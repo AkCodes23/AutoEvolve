@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the per-tool adapters from one source: adapters/_core.md.
+"""Generate the per-tool adapters from one source: AGENTS.md.
 
-Every inline adapter is the same condensed core with a different (or no) frontmatter.
-Editing four files by hand is how they drift, so instead edit `adapters/_core.md` once and
-run this to re-stamp them all:
+There is exactly one mindset profile and it lives in AGENTS.md. Every inline adapter is that
+same file with a different (or no) frontmatter. Editing four files by hand is how they drift, so
+instead edit `AGENTS.md` once and run this to re-stamp them all:
 
     python3 scripts/build_adapters.py
 
@@ -16,7 +16,10 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CORE = os.path.join(ROOT, "adapters", "_core.md")
+SOURCE = os.path.join(ROOT, "AGENTS.md")
+
+LF = chr(10)
+CRLF = chr(13) + chr(10)
 
 # path -> frontmatter prepended before the shared core ("" means no frontmatter).
 ADAPTERS: dict[str, str] = {
@@ -38,8 +41,18 @@ ADAPTERS: dict[str, str] = {
 }
 
 
-def render(frontmatter: str) -> str:
-    return frontmatter + open(CORE, encoding="utf-8").read()
+def render(frontmatter: str) -> bytes:
+    """The adapter's exact bytes, always LF.
+
+    Rendered and compared as BYTES on purpose. Text mode normalizes newlines on read AND write, so
+    `--check` used to report an adapter "up to date" when a rebuild would change every line ending
+    in it: on Windows the committed adapters were CRLF while the source was LF, a 42-byte
+    difference the invariant could not see. .gitattributes pins the repo to LF; this makes the
+    generator agree with it rather than with the platform.
+    """
+    with open(SOURCE, encoding="utf-8", newline="") as handle:
+        body = handle.read().replace(CRLF, LF)
+    return (frontmatter + body).encode("utf-8")
 
 
 def build(check: bool = False) -> list[str]:
@@ -49,11 +62,11 @@ def build(check: bool = False) -> list[str]:
         full = os.path.join(ROOT, path)
         content = render(frontmatter)
         if check:
-            current = open(full, encoding="utf-8").read() if os.path.exists(full) else None
+            current = open(full, "rb").read() if os.path.exists(full) else None
             if current != content:
                 stale.append(path)
         else:
-            with open(full, "w", encoding="utf-8") as f:
+            with open(full, "wb") as f:
                 f.write(content)
     return stale
 
@@ -67,9 +80,9 @@ def main() -> int:
             for p in stale:
                 print("  " + p)
             return 1
-        print("Adapters are up to date with adapters/_core.md.")
+        print("Adapters are up to date with AGENTS.md.")
         return 0
-    print(f"Wrote {len(ADAPTERS)} adapters from adapters/_core.md.")
+    print(f"Wrote {len(ADAPTERS)} adapters from AGENTS.md.")
     return 0
 
 

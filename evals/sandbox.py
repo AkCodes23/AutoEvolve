@@ -61,14 +61,35 @@ def ensure_ready() -> str:
     return image
 
 
+def _readable_by_container(workspace: str) -> None:
+    """Let the container read the mount without granting it CAP_DAC_OVERRIDE.
+
+    `tempfile.mkdtemp` creates 0700 directories owned by the invoking user. Because this
+    sandbox drops ALL capabilities, container root loses CAP_DAC_OVERRIDE and cannot traverse
+    such a directory, so every grader run failed with PermissionError for any host user that
+    was not uid 0. Widening the mount costs nothing: it is a throwaway directory, the mount is
+    read-only, and the host never executes what is inside it.
+    """
+    os.chmod(workspace, 0o755)
+    for name in os.listdir(workspace):
+        path = os.path.join(workspace, name)
+        if os.path.isfile(path):
+            os.chmod(path, 0o644)
+
+
 def run_python(workspace: str, script: str, timeout: int = 60) -> SandboxResult:
     """Run a grader in a read-only, no-network container mounted only to `workspace`."""
     docker = _docker()
     image = ensure_ready()
+    _readable_by_container(workspace)
+    # Run as the invoking user rather than container root where the platform has uids, so an
+    # escape from the read-only mount does not begin with root inside the container.
+    user = [] if not hasattr(os, "getuid") else ["--user", f"{os.getuid()}:{os.getgid()}"]
     command = [
         docker,
         "run",
         "--rm",
+        *user,
         "--network",
         "none",
         "--read-only",

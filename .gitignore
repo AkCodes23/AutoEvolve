@@ -17,5 +17,13 @@ __pycache__/
 # Scratch and temporary scripts
 scratch/
 
-# Reproducible benchmark outputs can contain provider metadata and are published deliberately.
+# Benchmark datasets stay local and are NOT published. They are still evidence, so the tradeoff
+# is real and docs/RESULTS.md states it where the numbers appear rather than implying the rows
+# ship alongside them. Keep your own copies: `profile.py --regrade` needs them to re-score a run
+# without paying for inference again, and they cannot be regenerated for free.
 evals/results/*.jsonl
+evals/results/token_cost*.txt
+
+# The verification wrapper's scratch log. It lands in the working tree of whatever repo the loop
+# runs in, and `git status` there is part of the keep-or-revert signal.
+.autoevolve_last_run.log
