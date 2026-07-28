@@ -109,9 +109,10 @@ skills/, commands/, .claude-plugin/     Claude Code plugin surface
 
 ## Contributing
 
-Run `python3 scripts/check.py` before you commit; CI runs it on every push. If you change the
-mindset, change `AGENTS.md` and run `python3 scripts/build_adapters.py`. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+Change the mindset in `AGENTS.md` and nowhere else, then run
+`python3 scripts/build_adapters.py` to regenerate the adapters. Run `python3 scripts/check.py`
+and `python3 -m unittest discover -s scripts -p "test_*.py"` before you commit. Keep `AGENTS.md`
+and `docs/` tool-neutral; tool names belong in `adapters/`.
 
 ## License
 
