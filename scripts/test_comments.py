@@ -358,9 +358,9 @@ class RepositoryCalibrationTests(unittest.TestCase):
     """
 
     FILES = ["autoevolve.py", "scripts/callers.py", "scripts/check.py", "scripts/comments.py",
-             "scripts/branch.py", "scripts/run_quiet.py", "scripts/build_adapters.py",
-             "evals/profile.py", "evals/sandbox.py", "evals/work_report.py",
-             "evals/agent_benchmark.py", "evals/agent_loop_sim.py"]
+             "scripts/ruler.py", "scripts/branch.py", "scripts/run_quiet.py",
+             "scripts/build_adapters.py", "scripts/check_target.py", "scripts/corpus_audit.py",
+             "scripts/ruler_audit.py"]
 
     def test_no_noise_in_the_repositorys_own_sources(self) -> None:
         offenders = []

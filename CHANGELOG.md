@@ -30,9 +30,19 @@ so a moving `main` never changes the mindset under you.
 - Consecutive `#` lines are one comment; judging them separately caused every false positive
   found in a standard-library audit. Noise went 2.01 to 0.57 per KLOC.
 
+### Removed
+- **`evals/` and `docs/BENCHMARK.md`.** The benchmark harness, its 11 scenarios and its datasets
+  are no longer part of this repository, which drops it from 11,788 to about 5,000 lines around a
+  38-line product. Everything is recoverable from git history at `9ac36c9`.
+- The cost is real and `docs/RESULTS.md` states it where the numbers appear: **those numbers can
+  no longer be reproduced from a fresh clone.** What ships is the method, the pre-registered
+  predictions, and which of them failed.
+
 ### Changed
-- **Benchmark datasets are no longer published.** They stay local. `docs/RESULTS.md` states that
-  beside every number instead of linking to rows absent from the clone.
+- README 488 to 120 lines, CHANGELOG 416 to ~130, `docs/RESULTS.md` 372 to 100, two module
+  docstrings halved, `docs/COMPATIBILITY.md` folded into `docs/INSTALL.md`. No capability removed.
+- CI drops the eval steps and gains one: the mechanisms must come up clean under their own
+  `comments.py --strict`.
 
 ### Measured
 - Comment reporter: **0.00 to 0.57 noise per KLOC** across 8 corpora, 626k lines. Two hand audits

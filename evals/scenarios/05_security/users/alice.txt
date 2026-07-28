@@ -1,3 +1,0 @@
-alice
-demo-profile-fixture-05-security
-Eval scaffolding only. Not a real account, no secrets here.
