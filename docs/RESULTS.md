@@ -172,12 +172,22 @@ since the starters already pass some checks for free.
    +53 tokens, and 56 percent to 56 percent on the scenario it was written for.
 
 **What shipped is not byte-identical to what was measured, and that matters.** The measured winner
-was the 1959-character condensed core (about 489 tokens). The surviving `AGENTS.md` is 2264
-characters (about 566 tokens), because the retired profile held the only definition of `DIRECTION.md`
-and `JOURNAL.md`, which `commands/`, `templates/` and the CLI all depend on, so that block was
-carried across. That is **+77 tokens of untested increment**. It is a conventions block rather than
-a behavioural rule, so the risk is low, but the honest statement is that the shipped file has not
-itself been through the comparison. Re-running the suite against it is the obvious next measurement.
+was the 1959-character condensed core (about 489 tokens). The shipped `AGENTS.md` has since grown
+twice, and neither increment has been through the comparison:
+
+| Version | Characters | Approx. tokens | Delta vs measured | Measured? |
+|---|---|---|---|---|
+| The condensed core, as benchmarked | 1959 | 489 | baseline | yes, 74.4 percent |
+| Plus the `DIRECTION.md` / `JOURNAL.md` conventions block | 2264 | 566 | +77 | no |
+| Plus the direct-code guardrail | 2526 | 631 | +142 | no |
+
+The conventions block was carried across because the retired profile held the only definition of
+`DIRECTION.md` and `JOURNAL.md`, which `commands/`, `templates/` and the CLI all depend on. The
+direct-code guardrail was added on judgement, not evidence. Both are worth stating plainly: the
+file that ships is **29 percent larger than the file that won**, and the one measured fact in this
+document is that a larger profile scored *lower*. That is a reason to re-run the suite against the
+shipped file, which remains the obvious next measurement, and a reason not to keep adding lines to
+it on the strength of how sensible they sound.
 
 
 ### The honest limits of this run
