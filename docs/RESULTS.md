@@ -26,8 +26,9 @@ survives any interval you could draw around one observation per cell.
 of which **12 are `api_error` and 5 are `grader_error`**: only 13 trials produced a verdict at
 all. `BENCHMARK.md` explicitly requires that infrastructure failures stay in the denominator.
 
-**Neither dataset shipped.** Both files are matched by `.gitignore`, and neither is tracked, so
-a fresh clone received the conclusions and none of the evidence.
+**Neither dataset shipped.** Neither was tracked, so a fresh clone received the conclusions and
+none of the evidence. Datasets are still unpublished today, but the difference is that this file
+now says so beside every number instead of linking to rows that are not there.
 
 **The multi-turn half measured scorer leakage.** The 86% multi-turn figure came from
 `evals/agent_loop_sim.py`, which at the time injected the grader's failing **check names**
@@ -51,9 +52,12 @@ nothing, so those scores are void rather than merely imprecise.
 
 ## Measured, 2026-07-27: head to head on the discriminating suite
 
-Raw rows: [`../evals/results/`](../evals/results/), grader revision `503e54e3af3b`. Predictions
-were written before the results were read, in
+Grader revision `503e54e3af3b`. Predictions were written before the results were read, in
 [`../evals/results/PREREGISTERED.md`](../evals/results/PREREGISTERED.md). Read that alongside this.
+**The raw rows are not published.** They are kept locally, and every row records the grader that
+scored it. That is a real cost and this file will not pretend otherwise: you are reading numbers
+whose underlying data is not in this clone, so what you can check here is the method and the
+predictions, not the arithmetic. Re-run it yourself with `evals/profile.py`.
 
 Frozen before the run: 5 scenarios (`05_security`, `08_reuse`, `09_collateral`, `10_scope`,
 `11_complexity`), 6 conditions, 3 trials per cell, temperature 0.2, seed 20260727,
@@ -200,8 +204,8 @@ Nothing here should be quoted as a ranking.
 
 ## Measured, 2026-07-28: what the direct-code guardrail costs
 
-Raw rows: [`../evals/results/directcode_cost.jsonl`](../evals/results/directcode_cost.jsonl).
-Predictions registered before the results were read, in
+Raw rows kept locally, not published (see above). Grader revision `b7ec4ccee4e0`, recorded on
+every row. Predictions registered before the results were read, in
 [`../evals/results/PREREGISTERED_directcode.md`](../evals/results/PREREGISTERED_directcode.md).
 `llama-3.1-8b-instant`, 5 scenarios x 3 arms x 3 trials, 45 trials, **zero API and zero grader
 errors**, all 15 cells balanced. Grader revision `b7ec4ccee4e0`. Two of the arms differ by
@@ -259,7 +263,7 @@ comments, which this suite is not.
 
 ## Superseded: 2026-07-27 demonstration run against the 7-scenario suite
 
-Raw rows: [`../evals/results/llama-3.1-8b-instant.g8a4a8f4a1d2c.jsonl`](../evals/results/llama-3.1-8b-instant.g8a4a8f4a1d2c.jsonl)
+Raw rows kept locally, not published
 (70 rows, every one carrying `sandboxed`, `sandbox_image`, `temperature`, `max_tokens`, `seed`,
 `prompt_sha256`, and the graded source).
 

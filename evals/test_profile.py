@@ -195,15 +195,10 @@ class GraderRevisionTests(unittest.TestCase):
                 handle.write(original)
         self.assertEqual(profile.grader_revision(), before)
 
-    def test_every_committed_dataset_row_names_its_grader(self) -> None:
-        import glob, json, os
-        stale = []
-        for path in sorted(glob.glob(os.path.join(profile.ROOT, "evals", "results", "*.jsonl"))):
-            rows = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
-            # The two withdrawn 70b datasets predate per-row scoring entirely; RESULTS.md
-            # retracts them by name, and rewriting retracted evidence would be worse.
-            if not rows or "checks_total" not in rows[0]:
-                continue
-            if any(not r.get("grader_revision") for r in rows):
-                stale.append(os.path.basename(path))
-        self.assertEqual(stale, [])
+    def test_a_written_row_carries_the_revision(self) -> None:
+        """Datasets are not published, so the guarantee is on what profile.py writes, not on
+        what happens to be in evals/results on someone's disk. A test that globs an unshipped
+        directory passes vacuously in CI and guarantees nothing."""
+        self.assertEqual(profile.GRADER_REVISION, profile.grader_revision())
+        source = inspect.getsource(profile)
+        self.assertIn('"grader_revision": GRADER_REVISION', source)
