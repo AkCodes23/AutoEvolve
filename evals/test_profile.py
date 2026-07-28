@@ -168,3 +168,42 @@ class BenchmarkRunnerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GraderRevisionTests(unittest.TestCase):
+    """Scores from different graders must never be pooled, so every row must name its ruler.
+
+    This repository has voided whole result sets over a grader change. The revision used to live
+    only in prose and in some filenames, which is a fact no program can check.
+    """
+
+    def test_the_revision_is_a_stable_fingerprint_of_every_grader(self) -> None:
+        self.assertRegex(profile.grader_revision(), r"^[0-9a-f]{12}$")
+        self.assertEqual(profile.grader_revision(), profile.grader_revision())
+
+    def test_editing_a_grader_changes_the_revision(self) -> None:
+        import glob, os, tempfile
+        before = profile.grader_revision()
+        target = sorted(glob.glob(os.path.join(profile.SCEN, "*", "grade.py")))[0]
+        original = open(target, "rb").read()
+        try:
+            with open(target, "ab") as handle:
+                handle.write(b"\n# calibration probe\n")
+            self.assertNotEqual(profile.grader_revision(), before)
+        finally:
+            with open(target, "wb") as handle:
+                handle.write(original)
+        self.assertEqual(profile.grader_revision(), before)
+
+    def test_every_committed_dataset_row_names_its_grader(self) -> None:
+        import glob, json, os
+        stale = []
+        for path in sorted(glob.glob(os.path.join(profile.ROOT, "evals", "results", "*.jsonl"))):
+            rows = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
+            # The two withdrawn 70b datasets predate per-row scoring entirely; RESULTS.md
+            # retracts them by name, and rewriting retracted evidence would be worse.
+            if not rows or "checks_total" not in rows[0]:
+                continue
+            if any(not r.get("grader_revision") for r in rows):
+                stale.append(os.path.basename(path))
+        self.assertEqual(stale, [])
