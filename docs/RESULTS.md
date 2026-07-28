@@ -198,6 +198,65 @@ paid rate limits or patience: a shared token allowance across models made parall
 self-defeating, and pacing three models under one bucket is slower than running them in sequence.
 Nothing here should be quoted as a ranking.
 
+## Measured, 2026-07-28: what the direct-code guardrail costs
+
+Raw rows: [`../evals/results/directcode_cost.jsonl`](../evals/results/directcode_cost.jsonl).
+Predictions registered before the results were read, in
+[`../evals/results/PREREGISTERED_directcode.md`](../evals/results/PREREGISTERED_directcode.md).
+`llama-3.1-8b-instant`, 5 scenarios x 3 arms x 3 trials, 45 trials, **zero API and zero grader
+errors**, all 15 cells balanced. Grader revision `b7ec4ccee4e0`. Two of the arms differ by
+exactly one line of `AGENTS.md`, diff-verified.
+
+This run measured the guardrail's **cost**, not its benefit. The benefit is not measurable on
+this suite and that was established for free before spending anything: the 90 stored outputs of
+the previous run hold **2 comment-noise findings in 90 files**, and 47 of 90 have no comments at
+all. Patch tasks on 3 to 75 line files, under a prompt ending "Do not explain", leave nothing to
+reduce.
+
+| Arm | Tokens/trial | Graded checks | 95% CI |
+| --- | --- | --- | --- |
+| `control` | 652 | 73.5% | [59.8, 86.7] |
+| `autoevolve_prev` (566-token profile) | 1206 | 75.9% | [64.2, 87.3] |
+| `autoevolve` (shipped, 631) | 1260 | 72.1% | [57.8, 85.5] |
+
+Paired on (scenario, trial), shipped minus pre-guardrail: **-3.8 points, 95% CI [-11.9, +4.5]**.
+
+**The pre-registered failure condition was not triggered**, so the guardrail stays. State the
+bound honestly, though: the point estimate is a 3.8 point decrease, and **the interval cannot
+exclude a regression as large as the 10 points that would have reverted it.** "No measurable
+regression" is what this supports. "No regression" is not.
+
+On the work axis the two guided arms are indistinguishable: churn 14.0 versus 14.3 lines, gain
+per 10 lines 0.97 versus 0.96. Both beat control's 15.7 churn, and `autoevolve_prev`'s -1.5 line
+reduction is the only interval here excluding zero.
+
+### The positive control did not replicate, and that limits everything above
+
+`10_scope` was registered as the check on the instrument, because the 2026-07-27 run had control
+at 33 percent and every guided arm at 100. **This time control scored 100 percent too.** The
+pre-registration says what to do about that: doubt the run before reading anything else in it.
+One scenario at ceiling for every arm is one fewer discriminating cell, so the effective power
+here is below what the design assumed, and the per-scenario column is noise at n=3. In
+particular `11_complexity` reads control 100, prev 90, shipped 71, which is the largest gap in
+the table and points AGAINST the shipped profile. Three trials cannot separate that from chance,
+and three earlier "effects" in this repository reversed on replication.
+
+### One exploratory observation, which is not a result
+
+Not pre-registered, recorded here so it is not quietly rediscovered as a finding later. Counting
+comments the model authored (present in its output, absent from the starter), the share matching
+the diff-narration shape (`# Fix: ...`) fell across the arms:
+
+| | control | pre-guardrail | shipped |
+| --- | --- | --- | --- |
+| authored comments | 15 | 25 | 37 |
+| narration share | 93% | 48% [28, 68] | 22% [11, 35] |
+
+The two guided intervals overlap, the denominators differ by more than a factor of two, and the
+hypothesis was formed after seeing the data. **Do not quote this as an effect.** It is a reason
+to pre-register the question and run it properly, on a task shape where models actually write
+comments, which this suite is not.
+
 ## Superseded: 2026-07-27 demonstration run against the 7-scenario suite
 
 Raw rows: [`../evals/results/llama-3.1-8b-instant.g8a4a8f4a1d2c.jsonl`](../evals/results/llama-3.1-8b-instant.g8a4a8f4a1d2c.jsonl)
