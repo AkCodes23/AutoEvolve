@@ -37,8 +37,19 @@ IGNORED = {"main", "run", "get", "set", "test", "setup", "init", "__init__", "wr
 
 
 def git(args: list[str], cwd: str) -> tuple[int, str]:
-    res = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
-    return res.returncode, res.stdout
+    """Run git and decode its output as UTF-8, never as the machine's locale codec.
+
+    `text=True` decodes with the locale encoding, which on Windows is cp1252. One byte outside
+    that codepage kills subprocess's reader thread, and the failure is silent in the worst way:
+    `returncode` is still 0 while `stdout` comes back as None, so a caller that trusts the exit
+    code gets an AttributeError far from the cause, or worse, treats None as "no output" and
+    reports an empty diff. Found by running this against `psf/requests`, whose history contains
+    exactly such a byte. Git speaks UTF-8; `errors="replace"` keeps one odd character in a commit
+    message from deciding whether the tool works at all.
+    """
+    res = subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                         encoding="utf-8", errors="replace")
+    return res.returncode, res.stdout or ""
 
 
 def changed_files(root: str, rev: str | None) -> list[str]:
