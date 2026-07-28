@@ -382,10 +382,16 @@ def main():
     p_loop.add_argument("--cmd", help="Verification command as one string. Split with POSIX rules, "
                                       "so prefer the `-- <argv>` form for anything containing "
                                       "quotes or Windows paths.")
-    p_loop.add_argument("--paths", action="append", default=[], metavar="PATH",
-                        help="A path this experiment created or edited (repeatable). Required "
-                             "before this command will revert or commit anything: it never "
-                             "guesses which edits are yours.")
+    # `nargs="+"` with `extend`, matching scripts/callers.py, comments.py and ruler.py, which all
+    # take several paths after one `--paths`. This used to be `action="append"`, so it accepted
+    # exactly one value per flag while its three siblings accepted many. `--paths a.py b.py` then
+    # silently absorbed `b.py` into the verification COMMAND: the command failed because `b.py`
+    # is not an executable, the loop reported SIGNAL REGRESSED, and it reverted `a.py`. The user
+    # was told their change made things worse and lost the experiment, over a flag parse.
+    p_loop.add_argument("--paths", nargs="+", action="extend", default=[], metavar="PATH",
+                        help="Paths this experiment created or edited (repeatable, and several "
+                             "may follow one flag). Required before this command will revert or "
+                             "commit anything: it never guesses which edits are yours.")
     p_loop.add_argument("--message", help="Description of hypothesis / change")
     p_loop.add_argument("--auto-commit", action="store_true", help="Commit the declared paths if the signal passes")
     p_loop.add_argument("cmdv", nargs=argparse.REMAINDER,
