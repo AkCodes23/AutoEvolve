@@ -54,7 +54,7 @@ class CommentedOutCodeTests(unittest.TestCase):
             "e.g. parse_tags(\"a, b\") drops the empty entry",
             "TODO", "ok", "noqa", "n", "why",
             # A bare annotation is how a quoted sentence sneaks past the parser. This exact line
-            # was a live false positive against evals/scenarios/09_collateral/grade.py.
+            # was a live false positive against a grader in the retired eval suite.
             'ponytail: "One guard in the shared function is a smaller diff than a guard in each"',
             "Note: the caller already holds the lock",
             "Invariant: every kept experiment is a commit",

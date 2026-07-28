@@ -23,6 +23,11 @@ so a moving `main` never changes the mindset under you.
 - `profile.py` records `grader_revision` on every row, so scores cannot be pooled across rulers.
 
 ### Fixed
+- **`setup` and `check` disagreed about the same repository.** Each had its own stack-detection
+  table: `setup` counted a bare `tests/` directory as pytest and wrote "pytest tests/" into
+  DIRECTION.md, `check` did not and then reported "Test Runner: None" for the repo `setup` had
+  just configured. One table now, in `check_target.detect_signal`, used by both, with tests
+  pinning that they agree and that `setup` does not grow its own copy again.
 - `scripts/callers.py` decoded git output with the machine's locale codec. One byte outside
   cp1252 killed subprocess's reader thread and returned `stdout=None` with **exit code 0**.
 - `comments.py` died with `UnicodeEncodeError` partway through a report, losing every finding
@@ -31,6 +36,9 @@ so a moving `main` never changes the mindset under you.
   found in a standard-library audit. Noise went 2.01 to 0.57 per KLOC.
 
 ### Removed
+- **`variants/`.** Two superseded copies of the mindset and a verdict log, kept only so the
+  benchmark could A/B them. Its README's one instruction invoked the profiler that is now gone,
+  which made it dead weight by the repo's own ladder. In git history with everything else.
 - **`evals/` and `docs/BENCHMARK.md`.** The benchmark harness, its 11 scenarios and its datasets
   are no longer part of this repository, which drops it from 11,788 to about 5,000 lines around a
   38-line product. Everything is recoverable from git history at `9ac36c9`.

@@ -11,6 +11,44 @@ import subprocess
 import sys
 
 
+# One table, because there were two and they disagreed. `autoevolve.py setup` counted a bare
+# `tests/` directory as pytest and wrote "pytest tests/" into DIRECTION.md; this file did not,
+# so `check` then reported "Test Runner: None" for the repo `setup` had just configured. Two
+# copies of the same fact stay equal only until someone edits one of them.
+#
+# Ordered: the first match wins, and a marker file beats a bare directory because it names the
+# runner rather than implying one.
+SIGNALS = [
+    ("python/pytest", ["pytest.ini", "tox.ini", "pyproject.toml", "setup.py", "requirements.txt"],
+     "pytest"),
+    ("javascript/npm", ["package.json"], "npm test"),
+    ("rust/cargo", ["Cargo.toml"], "cargo test"),
+    ("go/modules", ["go.mod"], "go test ./..."),
+    ("make/c", ["Makefile", "CMakeLists.txt"], "make test"),
+    ("python/pytest", ["tests", "test"], "pytest tests/"),
+]
+
+
+def detect_signal(target_abs):
+    """Every stack marker found, and the test command to suggest for the first one.
+
+    Returns (stacks, command). `command` is None when nothing was detected, so a caller can tell
+    "no runner" apart from "some default", which is the distinction DIRECTION.md needs: an
+    invented signal is worse than an empty one a human has to fill in.
+    """
+    stacks, command = [], None
+    for stack, markers, suggestion in SIGNALS:
+        for marker in markers:
+            path = os.path.join(target_abs, marker)
+            if os.path.isfile(path) or os.path.isdir(path):
+                if stack not in stacks:
+                    stacks.append(stack)
+                if command is None:
+                    command = suggestion
+                break
+    return stacks, command
+
+
 def check_target(target_dir: str) -> dict:
     target_abs = os.path.abspath(target_dir)
     results = {
@@ -75,20 +113,9 @@ def check_target(target_dir: str) -> dict:
         results["recommendations"].append("Run 'python autoevolve.py init --target <path>' to scaffold JOURNAL.md.")
 
     # 5. Test Runner & Tech Stack Detection
-    stack_signals = [
-        ("python/pytest", ["pytest.ini", "setup.py", "pyproject.toml", "requirements.txt", "tox.ini"]),
-        ("javascript/npm", ["package.json"]),
-        ("rust/cargo", ["Cargo.toml"]),
-        ("go/modules", ["go.mod"]),
-        ("make/c", ["Makefile", "CMakeLists.txt"]),
-    ]
-
-    for stack_name, files in stack_signals:
-        for fname in files:
-            if os.path.isfile(os.path.join(target_abs, fname)):
-                results["detected_stack"].append(stack_name)
-                results["has_test_runner"] = True
-                break
+    stacks, _ = detect_signal(target_abs)
+    results["detected_stack"] = stacks
+    results["has_test_runner"] = bool(stacks)
 
     if not results["has_test_runner"]:
         results["recommendations"].append("Add a test runner or build script (e.g., pytest, npm test, Makefile) to serve as a baseline signal.")

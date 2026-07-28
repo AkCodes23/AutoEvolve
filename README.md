@@ -102,8 +102,8 @@ scripts/
   corpus_audit.py, ruler_audit.py       measure the two detectors on real corpora
   build_adapters.py, check.py           keep the adapters and invariants honest
   check_target.py, branch.py, run_quiet.py
-  test_*.py                             65 tests, mutation-checked
-docs/                         checklist, worked example, principles, results, install, sources
+  test_*.py                             72 tests, mutation-checked
+docs/                         the loop as a checklist, one worked example, sources
 skills/, commands/, .claude-plugin/     Claude Code plugin surface
 ```
 

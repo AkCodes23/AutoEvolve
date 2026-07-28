@@ -118,15 +118,16 @@ def cmd_setup(target: str) -> int:
     rc_inst = cmd_install(target_abs)
     rc_init = cmd_init(target_abs)
 
-    detected = "manual test command"
-    if os.path.exists(os.path.join(target_abs, "pytest.ini")) or os.path.exists(os.path.join(target_abs, "tests")):
-        detected = "pytest tests/"
-    elif os.path.exists(os.path.join(target_abs, "package.json")):
-        detected = "npm test"
-    elif os.path.exists(os.path.join(target_abs, "Cargo.toml")):
-        detected = "cargo test"
-    elif os.path.exists(os.path.join(target_abs, "go.mod")):
-        detected = "go test ./..."
+    # Shared with `check`, deliberately. These were two tables that disagreed: this one counted a
+    # bare `tests/` directory as pytest and wrote "pytest tests/" into DIRECTION.md, while the
+    # checker did not, so `check` reported "Test Runner: None" for a repo `setup` had just
+    # configured. One command contradicting another about the same directory is worse than either
+    # answer alone.
+    sys.path.insert(0, SCRIPTS_DIR)
+    from check_target import detect_signal
+
+    _, detected = detect_signal(target_abs)
+    detected = detected or "manual test command"
 
     # Customize DIRECTION.md if template placeholder exists
     direction_path = os.path.join(target_abs, "DIRECTION.md")

@@ -99,7 +99,7 @@ def resolves_with_exact_case(full_path: str) -> bool:
     """True only if every path component matches the on-disk spelling exactly.
 
     `os.path.exists` is case-insensitive on Windows and case-sensitive on Linux, so a link
-    written as `docs/Principles.md` passed the self-check on a Windows author's machine and
+    written as `docs/Checklist.md` passed the self-check on a Windows author's machine and
     failed CI on a byte-identical tree. Comparing each component against the real directory
     listing gives both platforms the same answer, which is the whole point of an invariant.
     """
