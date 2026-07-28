@@ -78,6 +78,38 @@ so a moving `main` never changes the mindset under you.
   grader revision `503e54e3af3b`. Unit tests over fixtures answer "does the detector work" without
   either problem.
 
+### Added: a mechanism for the frozen signal
+- **`scripts/ruler.py`** guards the rule this project states most and enforced least. *Optimize
+  the objective, never the scorer* appears in `AGENTS.md`, `docs/CHECKLIST.md`, the skill and two
+  commands, and nothing checked it. It is also the guardrail whose violation is worst: a change
+  that weakens its own test does not merely fail to improve the code, it voids the evidence that
+  anything else did.
+- **It reads `DIRECTION.md` rather than guessing.** That file is the human's own declaration of
+  the signal, and on a real repository its `Signal:` line reads `pytest tests/`, which names the
+  directory. Saying "you edited what DIRECTION.md calls your ruler" is principled; saying "you
+  edited a file matching `test_*`" is a guess. Convention is the fallback.
+- **Deliberately not shaped like `comments.py`, and a test enforces that.** No gate, no
+  `--strict`, not in the pre-commit hook, always exits 0. `comments.py` has a tier it can
+  *prove*; nothing here is provable. A changed expectation is equally a bug fix, and adding tests
+  is the commonest honest reason to touch a test file, so a gate would block real work and be
+  switched off within a day.
+- **Measured before it was trusted, with the bar written down first:** at most 25 percent of
+  human test-touching commits may raise a `weakened` finding. Over 100 such commits each,
+  `urllib3` gives **7 percent** and `click` **14 percent**. `scripts/ruler_audit.py` reproduces it.
+- Hand-auditing that measurement found the tool calling a **move** a deletion: `pallets/click`
+  commit `7007982` split `tests/test_utils.py` into a directory and read as ten removed tests.
+  Names and bodies are now gathered across every ruler file in the change, taking that commit
+  from 10 findings to 0 and click's rate from 17 to 14 percent.
+
+### Fixed: git output is UTF-8, not the machine's locale codec
+- `subprocess.run(..., text=True)` in `scripts/callers.py` decoded with the locale encoding,
+  cp1252 on Windows. One byte outside it kills subprocess's reader thread, and the failure is
+  silent in the worst way: `returncode` stays **0** while `stdout` comes back as **None**. A
+  caller trusting the exit code either crashes far from the cause or reads `None` as an empty
+  diff and reports no changes at all. Found by pointing the new audit at `psf/requests`, whose
+  history contains exactly such a byte. This was a latent bug in the shipped `callers.py` and in
+  everything importing its `git()`, not only in the new code.
+
 ### Removed (BREAKING): the second profile
 - **There is now exactly one mindset profile, `AGENTS.md`.** `adapters/_core.md` is deleted and the
   per-tool adapters are generated from `AGENTS.md` instead, so there is one place to edit the
