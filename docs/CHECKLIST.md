@@ -28,6 +28,10 @@ task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list
 - [ ] Make one small, targeted diff for one hypothesis; leave surrounding working code
       identical.
 - [ ] Fix bugs at the root cause: grep every caller, fix the shared function once.
+- [ ] Write it directly: no comment that restates the line, no commented-out code, no
+      docstring that only repeats the function's own name and parameters. A comment earns
+      its place by recording what the code cannot, which is nearly always a *why*. When
+      you want to narrate a line, rename something instead.
 - [ ] Keep the tree clean before you edit, so a rejected change reverts cleanly; don't
       commit until it verifies.
 
