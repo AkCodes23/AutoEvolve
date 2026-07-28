@@ -35,10 +35,15 @@ so a moving `main` never changes the mindset under you.
   **zero noise and three candidates, all three genuine restatements**. `scripts/test_comments.py`
   pins both halves: every detector is tested on text it must flag and on text it must not, and one
   test fails if the repository's own why-comments ever start tripping it.
-- Wired in: step 3 of `/simplify`, a "Write direct code" section in the skill, two new CI steps
-  (`scripts` unit tests and both mechanism CLIs), and `autoevolve.py hooks`, which now runs
-  `comments.py --staged --strict` so only provable noise can block a commit. `--staged` reads the
-  index inside Python, so a path containing a space cannot split into two arguments in the hook.
+- Wired in: step 3 of `/simplify`, a "Write direct code" section in the skill, an item under
+  "Make the change" in `docs/CHECKLIST.md`, the argument for the rule in `docs/PRINCIPLES.md`,
+  and two new CI steps (`scripts` unit tests, and both mechanism CLIs).
+- `autoevolve.py hooks` now runs `comments.py --staged --strict`, so only provable noise can block
+  a commit. `--staged` reads the index inside Python, so a path containing a space cannot split
+  into two arguments in the hook. **Scope, stated plainly:** like the two checks already in that
+  hook, this one is guarded by `[ -f scripts/comments.py ]` and the installers copy only
+  `AGENTS.md` and the adapters, so in a target repository the line is inert. The mechanisms are
+  run *against* a target from an AutoEvolve checkout with `--root`, not installed into it.
 - **`scripts/callers.py` finally has tests too** (`scripts/test_callers.py`). It shipped as a
   mechanism with nothing pinning its output, having already once had the bug where it skipped the
   file a symbol was defined in, reported "no references found", and suggested the symbol might be

@@ -136,6 +136,22 @@ class RestatementTests(unittest.TestCase):
 
 
 class ExemptionTests(unittest.TestCase):
+    def test_a_decorated_work_marker_survives_undecoration(self) -> None:
+        """KEEP_PREFIXES is checked after undecorate(), so the two must compose.
+
+        `evolve:` is the load-bearing one. AGENTS.md, SKILL.md and CHECKLIST.md all instruct
+        agents to write it, so --strict blocking a commit over it would have this repository
+        contradicting its own documented convention.
+        """
+        for marker in ["# --- TODO: finish this ---",
+                       "# === evolve: O(n^2) scan, fine under 10k rows ===",
+                       "# ---- noqa: E501 ----"]:
+            self.assertEqual(tiers(marker + "\nvalue = 1\n"), [], marker)
+
+    def test_decoration_does_not_launder_commented_out_code(self) -> None:
+        for hidden in ["# ---- print(user) ----", "# ==== cache = {} ===="]:
+            self.assertEqual(tiers(hidden + "\nvalue = 1\n"), ["noise"], hidden)
+
     def test_work_markers_and_directives_are_left_alone(self) -> None:
         self.assertEqual(tiers("""
             # TODO: handle negative amounts
