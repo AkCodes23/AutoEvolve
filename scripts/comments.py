@@ -17,9 +17,10 @@ It reports and never rewrites, because deleting a comment is a judgement about w
 sentence carries a why, and that judgement is yours. Two tiers are printed:
 
     noise      a comment that provably says nothing the code does not (commented-out code,
-               a docstring built only from the signature, a decoration bar). --strict fails
-               on these alone.
-    candidate  a comment that looks like a restatement of the next line. Read it and decide.
+               a docstring built only from the signature, a bare rule of punctuation).
+               --strict fails on these alone.
+    candidate  a comment whose words are already in the line it describes, whether that is the
+               next line or its own. Advisory: read it and decide, it never fails --strict.
 
 TODO, FIXME, HACK, XXX, tool directives (`# type:`, `# noqa`) and the repo's own `evolve:`
 markers are left alone: they are work markers, not descriptions.
@@ -168,6 +169,24 @@ def find_vacuous_docstrings(tree: ast.AST) -> list[tuple[int, str, str]]:
     return found
 
 
+def comment_tokens(source: str) -> list[tokenize.TokenInfo]:
+    """Every comment token, keeping what was read before an unbalanced file stops the lexer.
+
+    `tokenize` raises TokenError at EOF inside an unclosed bracket, and `list()` around the
+    generator throws away every token it had already produced. That turned a file with one stray
+    paren into a silent "no comment noise found", which is the same false all-clear a mistyped
+    path used to give: an absence of findings has to mean the file was actually read.
+    """
+    found = []
+    try:
+        for token in tokenize.generate_tokens(io.StringIO(source).readline):
+            if token.type == tokenize.COMMENT:
+                found.append(token)
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        pass
+    return found
+
+
 def next_code_line(lines: list[str], start: int) -> tuple[int, str] | None:
     for offset in range(start, min(start + 3, len(lines))):
         text = lines[offset].strip()
@@ -191,14 +210,7 @@ def scan(path: str) -> list[tuple[int, str, str]]:
     except (SyntaxError, ValueError):
         pass
 
-    try:
-        tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
-    except (tokenize.TokenError, IndentationError, SyntaxError):
-        tokens = []
-
-    for token in tokens:
-        if token.type != tokenize.COMMENT:
-            continue
+    for token in comment_tokens(source):
         row = token.start[0]
         raw = token.string.lstrip("#").strip()
         if not raw:
@@ -238,10 +250,24 @@ def staged_files(root: str) -> list[str]:
 
 
 def python_targets(root: str, paths: list[str] | None, rev: str | None, staged: bool) -> list[str]:
+    """The files to scan, refusing a path the caller named but that is not there.
+
+    An unreadable file scanned to zero findings, so a mistyped `--paths` printed "no comment noise
+    found" and the caller read a clean bill of health for a file that was never opened. A tool
+    whose good news is an absence has to be loud about the difference between "nothing wrong" and
+    "nothing looked at".
+    """
     if paths:
+        missing = [p for p in paths
+                   if not os.path.isfile(p if os.path.isabs(p) else os.path.join(root, p))]
+        if missing:
+            raise SystemExit(f"no such file: {', '.join(missing)}")
+        skipped = [p for p in paths if not p.endswith(".py")]
+        if skipped:
+            print(f"Skipping non-Python path(s): {', '.join(skipped)}", file=sys.stderr)
         return [p for p in paths if p.endswith(".py")]
     if staged:
-        return [p for p in staged_files(root) if os.path.exists(os.path.join(root, p))]
+        return [p for p in staged_files(root) if os.path.isfile(os.path.join(root, p))]
     return changed_files(root, rev)
 
 

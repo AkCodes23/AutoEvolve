@@ -158,6 +158,38 @@ class StrictTierTests(unittest.TestCase):
         self.assertNotIn("noise", [tier for _, tier, _ in found])
 
 
+class TargetSelectionTests(unittest.TestCase):
+    """A report whose only signal is an absence must distinguish clean from never-opened."""
+
+    def test_a_mistyped_path_is_fatal_rather_than_a_clean_bill_of_health(self) -> None:
+        with self.assertRaises(SystemExit):
+            comments.python_targets(ROOT, ["no_such_file.py"], None, False)
+
+    def test_a_directory_is_fatal(self) -> None:
+        with self.assertRaises(SystemExit):
+            comments.python_targets(ROOT, ["scripts"], None, False)
+
+    def test_a_real_file_is_accepted(self) -> None:
+        self.assertEqual(comments.python_targets(ROOT, ["scripts/comments.py"], None, False),
+                         ["scripts/comments.py"])
+
+
+class UnreadableInputTests(unittest.TestCase):
+    def test_an_unbalanced_file_keeps_the_comments_read_before_the_lexer_stopped(self) -> None:
+        """tokenize raises at EOF inside an open bracket; list() would discard the whole batch."""
+        self.assertEqual(tiers("def broken(:\n    # print(x)\n    # cache = {}\n"),
+                         ["noise", "noise"])
+
+    def test_a_syntax_error_does_not_raise(self) -> None:
+        scan_source("def broken(:\n    pass\n")
+
+    def test_an_empty_file_is_silent(self) -> None:
+        self.assertEqual(scan_source(""), [])
+
+    def test_a_comment_only_file_is_handled(self) -> None:
+        self.assertEqual(tiers("# x = 1\n"), ["noise"])
+
+
 class RepositoryCalibrationTests(unittest.TestCase):
     """The reporter must stay silent on this repository's own why-comments.
 
