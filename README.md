@@ -180,6 +180,18 @@ python3 scripts/comments.py --strict            # exit 1 on noise only, for a pr
 ```
 
 Both take `--root`, so you can run them from an AutoEvolve checkout against another repository.
+`comments.py --staged` also implies `--baseline HEAD`, so adopting the hook in a repository that
+already contains comment noise does not fail your commits over someone else's old comment.
+
+Its accuracy is measured against code nobody here wrote, because the first calibration used
+twelve files by one author and that is no evidence at all. Over the Python standard library, 551
+files and 282k lines, it reports **0.57 noise and 1.05 candidates per KLOC**. Two hand audits of
+30 random findings drove every detector in it, and the known remaining errors are listed in the
+module's own docstring. Reproduce it, and audit a fresh sample, with:
+
+```bash
+python3 scripts/corpus_audit.py --sample 30
+```
 
 The general lesson generalizes past these two scripts: when a step of the loop keeps getting
 skipped, prefer converting it into something that runs over restating it more emphatically.
@@ -417,6 +429,7 @@ scripts/
   run_quiet.py                run a command and summarize it, to save agent context
   callers.py                  list the call sites of every symbol you just changed
   comments.py                 report comment noise in the code you just changed
+  corpus_audit.py             measure comments.py against a corpus nobody here wrote
   test_callers.py             calibration tests for callers.py
   test_comments.py            calibration tests, half of them false-positive guards
 .github/workflows/check.yml   runs the self-check on every push and pull request
