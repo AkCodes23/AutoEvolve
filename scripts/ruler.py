@@ -25,15 +25,21 @@ most common legitimate reason to touch a test file at all. A gate over an inhere
 signal blocks honest work, gets switched off, and then protects nothing. Two tiers, both for a
 human to read:
 
-    weakened  the closest thing to a fact available: a test that existed at the baseline is gone
-              with no renamed twin, or a skip/xfail marker that was not there before.
+    weakened  the closest thing to a fact available ONCE moves are detected: a test that existed
+              at the baseline is gone from the whole ruler, not merely from its old file, or a
+              skip/xfail marker appeared that was not there before. Deletion is not inherently
+              provable, and before `compare` looked across files it was this tool's worst source
+              of false positives: splitting one test file into a directory read as ten removals.
     review    a judgement call. A surviving test lost assertions, or the value it expects changed.
               Both are what a real fix looks like too. Read the diff.
 
 ACCEPTANCE BAR, written before measuring, because a detector nobody can trust is worse than none:
 run over real human commits that touch tests in third-party repositories, **if more than 25
 percent of them raise a `weakened` finding, the tier is too loose** and must be narrowed or the
-whole tool demoted to advisory. `scripts/ruler_audit.py` performs that measurement.
+whole tool demoted to advisory. `scripts/ruler_audit.py` performs that measurement. Measured at
+**7 percent on `urllib3` and 14 percent on `click`**, 100 test-touching commits each. Read that
+with its caveat: two repositories, both small, and `click` is the one whose history motivated the
+cross-file move fix, so it is no longer an independent test of that fix.
 
 Python test files only, for the same reason `comments.py` is Python only: telling a weakened
 assertion from a rewritten one needs a parser.
@@ -151,7 +157,7 @@ def compare(before: str, after: str, elsewhere_names: frozenset[str] = frozenset
 
     `elsewhere_*` describe every other ruler file AFTER the change, and without them the tool
     calls a move a deletion. Click's commit 7007982 split `tests/test_utils.py` into a directory
-    and read as five removed tests, which is a tidy-up reported as the worst thing the tool can
+    and read as ten removed tests, which is a tidy-up reported as the worst thing the tool can
     say. A suite is not weaker because a test changed file.
     """
     old, new = test_functions(before), test_functions(after)

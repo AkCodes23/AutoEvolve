@@ -96,6 +96,8 @@ so a moving `main` never changes the mindset under you.
 - **Measured before it was trusted, with the bar written down first:** at most 25 percent of
   human test-touching commits may raise a `weakened` finding. Over 100 such commits each,
   `urllib3` gives **7 percent** and `click` **14 percent**. `scripts/ruler_audit.py` reproduces it.
+  Read those with their caveat: two repositories, both small, and `click` is the one whose history
+  motivated the move fix below, so it is no longer an independent test of it.
 - Hand-auditing that measurement found the tool calling a **move** a deletion: `pallets/click`
   commit `7007982` split `tests/test_utils.py` into a directory and read as ten removed tests.
   Names and bodies are now gathered across every ruler file in the change, taking that commit

@@ -31,7 +31,9 @@ Adopt this loop for the task at hand. The full rationale lives in the repo's roo
    change; prefer a surgical diff to a rewrite.
 5. **Verify** in cascade: does it run? → is it correct? → *only then* is it smaller /
    faster / cleaner? Correctness and safety gate everything; a wrong answer is wrong no
-   matter how short. If the signal is noisy, take the **median** of a few runs.
+   matter how short. If the signal is noisy, take the **median** of a few runs. Then confirm you did not
+   move the goalposts: `scripts/ruler.py` reports what your change did to the tests that judge
+   it. A green suite you edited yourself is not evidence.
 6. **Keep or revert.** Keep if it's strictly better with no regression, *or*
    neutral-but-simpler, *or* a deletion, and still correct; commit it (new best).
    Otherwise revert, and keep the lesson. A reverted experiment still made progress: it
