@@ -12,7 +12,11 @@
       "description": "An operating mindset for AI coding agents: small, verified, kept-if-better changes; walk the ladder; simplify relentlessly.",
       "homepage": "https://github.com/AkCodes23/AutoEvolve",
       "license": "MIT",
-      "keywords": ["ai-agents", "coding-agent", "mindset"]
+      "keywords": [
+        "ai-agents",
+        "coding-agent",
+        "mindset"
+      ]
     }
   ]
 }

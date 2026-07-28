@@ -17,5 +17,11 @@ __pycache__/
 # Scratch and temporary scripts
 scratch/
 
-# Reproducible benchmark outputs can contain provider metadata and are published deliberately.
-evals/results/*.jsonl
+# Benchmark datasets are evidence, not build output: a claim in docs/ is worthless if the rows
+# behind it are not in the same clone. This pattern previously ignored them while its own comment
+# said they were published deliberately, so RESULTS.md shipped conclusions with no data. Commit
+# the dataset that backs a published number, and inspect it for provider metadata before you do.
+
+# The verification wrapper's scratch log. It lands in the working tree of whatever repo the loop
+# runs in, and `git status` there is part of the keep-or-revert signal.
+.autoevolve_last_run.log

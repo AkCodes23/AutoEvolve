@@ -31,13 +31,13 @@ def check_target(target_dir: str) -> dict:
         results["recommendations"].append(f"Create or specify a valid directory path (path '{target_abs}' not found).")
         return results
 
-    # 1. Git Check
-    git_dir = os.path.join(target_abs, ".git")
-    if os.path.exists(git_dir):
-        results["is_git"] = True
-    else:
-        res = subprocess.run(["git", "-C", target_abs, "rev-parse", "--git-dir"], capture_output=True, text=True)
-        results["is_git"] = (res.returncode == 0)
+    # 1. Git Check. Ask git, rather than looking for a `.git` entry: an empty or stray `.git`
+    # directory is common (this project's own parent directory has one) and used to short-circuit
+    # the working probe below, reporting a non-repository as initialized and suppressing the
+    # `git init` recommendation.
+    res = subprocess.run(["git", "-C", target_abs, "rev-parse", "--git-dir"],
+                         capture_output=True, text=True)
+    results["is_git"] = (res.returncode == 0)
 
     if not results["is_git"]:
         results["recommendations"].append("Run 'git init' in the target project to enable keep-or-revert experiments.")
@@ -49,14 +49,18 @@ def check_target(target_dir: str) -> dict:
         try:
             with open(agents_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-                results["core_fingerprint"] = ("AutoEvolve-Core" in content) or ("AutoEvolve" in content)
+                # Only the marker the installers actually write (install.sh greps for this
+                # exact string). The previous `or ("AutoEvolve" in content)` clause made the
+                # real check dead code: an AGENTS.md saying the project does NOT use AutoEvolve
+                # satisfied it, so this reported a fingerprint that was never installed.
+                results["core_fingerprint"] = "AutoEvolve-Core" in content
         except Exception:
             pass
 
     if not results["agents_installed"]:
         results["recommendations"].append("Run 'python autoevolve.py install --target <path>' to install AGENTS.md.")
     elif not results["core_fingerprint"]:
-        results["recommendations"].append("AGENTS.md exists but lacks AutoEvolve fingerprint. Re-install with --profile core or full.")
+        results["recommendations"].append("AGENTS.md exists but lacks the AutoEvolve marker. Re-run the installer, or merge AGENTS.md by hand.")
 
     # 3. DIRECTION.md Check
     direction_path = os.path.join(target_abs, "DIRECTION.md")
@@ -105,6 +109,11 @@ def check_target(target_dir: str) -> dict:
         score += 15
 
     results["score"] = min(score, 100)
+    # The score is informational. Readiness is a conjunction, not a total: DIRECTION.md,
+    # JOURNAL.md and a test runner are worth 40 points between them, so a repo with none of the
+    # mindset installed used to clear a 60-point bar and be reported ready.
+    results["ready"] = bool(results["is_git"] and results["agents_installed"]
+                            and results["core_fingerprint"])
     return results
 
 
@@ -123,12 +132,14 @@ def print_report(res: dict):
     print(f"  [ {'OK' if res['has_test_runner'] else 'WARN'} ] Test Runner / Baseline Signal ({', '.join(res['detected_stack']) or 'None'})")
     print("-" * 70)
 
+    required = "READY" if res.get("ready") else "NOT READY"
+    print(f"Required for readiness (git + AGENTS.md + AutoEvolve fingerprint): {required}")
     if res["recommendations"]:
         print("ACTIONABLE SETUP INSTRUCTIONS:")
         for idx, rec in enumerate(res["recommendations"], 1):
             print(f"  {idx}. {rec}")
-    else:
-        print("STATUS: Target repository is 100% READY for AutoEvolve AI coding sessions!")
+    elif res.get("ready"):
+        print("STATUS: Target repository is READY for AutoEvolve AI coding sessions.")
     print("=" * 70)
 
 
@@ -139,7 +150,7 @@ def main():
     args = parser.parse_args()
 
     results = check_target(args.target)
-    if args.fix and results["score"] < 100:
+    if args.fix and not results["ready"]:
         print("\n[check_target] Applying automatic --fix setup...")
         here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if here not in sys.path:
@@ -149,7 +160,7 @@ def main():
         results = check_target(args.target)
 
     print_report(results)
-    return 0 if results["score"] >= 60 else 1
+    return 0 if results["ready"] else 1
 
 
 if __name__ == "__main__":

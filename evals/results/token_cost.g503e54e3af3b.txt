@@ -1,0 +1,11 @@
+Context cost per condition (rough estimate, ~chars / 4):
+  condition    chars   words  ~tokens
+  control          0       0        0
+  karpathy      1398     219      349
+  ponytail      1176     198      294
+  core          1959     273      489
+  full          3655     519      913
+  core_v2       2169     308      542
+
+This is the cost half of the question (how many tokens you pay every turn).
+The accuracy half needs a model: run without --tokens (set GROQ_API_KEY).

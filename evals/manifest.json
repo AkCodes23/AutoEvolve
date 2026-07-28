@@ -35,6 +35,36 @@
       "source": "evals/scenarios/06_errorhandling",
       "task": "Fix error handling issues in pipeline.py: input validation in process_records, division by zero in calculate_average, format crashes in parse_date, and silent error swallowing in write_output. Handle errors safely without breaking valid runs.",
       "code_file": "pipeline.py"
+    },
+    {
+      "id": "07_yagni",
+      "source": "evals/scenarios/07_yagni",
+      "task": "Fix parse_tags(text) in tags.py to split comma-separated tags, strip surrounding whitespace, and exclude empty tags. Keep the implementation minimal.",
+      "code_file": "tags.py"
+    },
+    {
+      "id": "08_reuse",
+      "source": "evals/scenarios/08_reuse",
+      "task": "In reuse.py, find_product(catalog, raw_sku) and remove_product(catalog, raw_sku) only match a product code spelled exactly the way it is stored, so \"ab 12\" does not find the product that was registered as \"AB-12\". Fix both so that any spelling of the same code resolves to the same catalog entry: surrounding whitespace is ignored, letter case is ignored, and a space, an underscore and a hyphen are interchangeable separators. find_product must return the stored product record or None when nothing matches; remove_product must delete the entry and return True when it matched, and return False and leave the catalog unchanged when it did not. Leave the rest of the module working as it does today.",
+      "code_file": "reuse.py"
+    },
+    {
+      "id": "09_collateral",
+      "source": "evals/scenarios/09_collateral",
+      "task": "The printed invoice renders a promotional order line as `Gizmo x2 $-10.00`. A discount over 100 percent should bill the customer nothing, so that line must read `Gizmo x2 $0.00`. Fix orders.py so that line prints `$0.00`, and ordinary invoice lines still print exactly as they do now.",
+      "code_file": "orders.py"
+    },
+    {
+      "id": "10_scope",
+      "source": "evals/scenarios/10_scope",
+      "task": "get_setting(settings, key, default=None) in settings.py hands back default whenever the stored value is falsy, so a configured 0, False or \"\" is silently replaced. Make it fall back to default only when the key is absent. get_timeout and get_retries route through get_setting, so a configured 0 must reach them too.",
+      "code_file": "settings.py"
+    },
+    {
+      "id": "11_complexity",
+      "source": "evals/scenarios/11_complexity",
+      "task": "In telemetry.py, repeated_devices(readings) returns the sorted device ids that appear in more than one reading, and peak_value(readings, metric) returns the highest value recorded for that metric. Both are correct but wasteful, and the nightly job passes hundreds of thousands of readings at once. Make both efficient in running time and in peak memory, keeping their documented return values exactly as they are and leaving the caller's readings list unmodified.",
+      "code_file": "telemetry.py"
     }
   ]
 }

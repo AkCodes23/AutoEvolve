@@ -1,4 +1,4 @@
-"""Data processing pipeline. This is the code under test. See grade.py.
+"""Data processing pipeline. This is the code under test.
 
 PROBLEMS:
 - process_records() crashes on None, non-list inputs, and dicts with missing keys
