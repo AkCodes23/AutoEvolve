@@ -24,6 +24,7 @@ Files here are NOT shipped and NOT installed. They exist so a proposed change to
 be measured against the current one before it is adopted:
 
 ```bash
+# The profiler that ran this lives in git history at 9ac36c9.
 python3 evals/profile.py --condition core_v2=variants/core_v2.md \
   --conditions control,core,core_v2 --runs 3
 ```

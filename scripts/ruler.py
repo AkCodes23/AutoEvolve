@@ -1,48 +1,26 @@
 #!/usr/bin/env python3
-"""Report changes to the thing that judges your change.
+"""Report what your change did to the tests that judge it.
 
-    python3 scripts/ruler.py                    # what your uncommitted work did to the tests
-    python3 scripts/ruler.py --rev HEAD~3       # since a revision
-    python3 scripts/ruler.py --root path/to/repo
+    python3 scripts/ruler.py                # your uncommitted changes
+    python3 scripts/ruler.py --rev HEAD~3
 
-WHY THIS EXISTS. "Optimize the objective, never the scorer" is stated in five places across this
-mindset, and nothing checked it. It is also the guardrail whose violation is worst: a change that
-weakens its own test does not merely fail to improve the code, it destroys the evidence that
-anything else improved either, and every number downstream of it is void. An agent under pressure
-to make a suite green can make it green by editing the suite, and that is not a hypothetical
-failure mode, it is the cheapest available action.
+"Optimize the objective, never the scorer" is stated in five places in this mindset and nothing
+checked it. It is also the guardrail whose violation is worst: a change that weakens its own test
+voids the evidence that anything else improved.
 
-WHAT IS FROZEN is read from `DIRECTION.md` rather than guessed, because that file is the human's
-own declaration of the signal and is documented as read-only to the agent. Its `Signal:` line on a
-real repository reads `pytest tests/`, which names the directory. Convention (`test_*.py`,
-`*_test.py`, `tests/`, `conftest.py`) is the fallback when there is no DIRECTION.md or its signal
-names no path.
+What is frozen comes from `DIRECTION.md`, the human-owned declaration of the signal; convention
+(`tests/`, `test_*.py`, `conftest.py`) is the fallback. Two tiers: `weakened` is a test gone from
+the whole ruler, or a new skip marker. `review` is a surviving test that lost assertions or
+changed what it expects.
 
-REPORT ONLY. There is no `--strict`, this is not in the pre-commit hook, and it always exits 0.
-That is a deliberate difference from `scripts/comments.py`, which has a tier it can *prove*.
-Nothing here is provable: a changed expected value is equally a bug fix, and adding tests is the
-most common legitimate reason to touch a test file at all. A gate over an inherently ambiguous
-signal blocks honest work, gets switched off, and then protects nothing. Two tiers, both for a
-human to read:
+REPORT ONLY: no `--strict`, not in the hook, always exits 0, and a test keeps it that way. Unlike
+`comments.py` nothing here is provable. A changed expectation is equally a bug fix, and adding
+tests is the commonest honest reason to touch a test file, so a gate would block real work.
 
-    weakened  the closest thing to a fact available ONCE moves are detected: a test that existed
-              at the baseline is gone from the whole ruler, not merely from its old file, or a
-              skip/xfail marker appeared that was not there before. Deletion is not inherently
-              provable, and before `compare` looked across files it was this tool's worst source
-              of false positives: splitting one test file into a directory read as ten removals.
-    review    a judgement call. A surviving test lost assertions, or the value it expects changed.
-              Both are what a real fix looks like too. Read the diff.
-
-ACCEPTANCE BAR, written before measuring, because a detector nobody can trust is worse than none:
-run over real human commits that touch tests in third-party repositories, **if more than 25
-percent of them raise a `weakened` finding, the tier is too loose** and must be narrowed or the
-whole tool demoted to advisory. `scripts/ruler_audit.py` performs that measurement. Measured at
-**7 percent on `urllib3` and 14 percent on `click`**, 100 test-touching commits each. Read that
-with its caveat: two repositories, both small, and `click` is the one whose history motivated the
-cross-file move fix, so it is no longer an independent test of that fix.
-
-Python test files only, for the same reason `comments.py` is Python only: telling a weakened
-assertion from a rewritten one needs a parser.
+Measured before trusted, bar written first: at most 25 percent of human test-touching commits may
+raise `weakened`. `urllib3` gives 7 percent and `click` 14 (`scripts/ruler_audit.py`). Read those
+with their caveat: two small repositories, and click's history motivated the move detection, so it
+is not an independent test of it. Python only.
 """
 from __future__ import annotations
 

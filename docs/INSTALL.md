@@ -97,3 +97,23 @@ adapters just point at it.
 
 To confirm the mindset loaded, ask your agent "what is your operating loop?" It should
 describe the understand, signal, baseline, smallest-change, verify, keep-or-revert cycle.
+
+## Which surfaces are verified
+
+Installation success and behaviour success are different checks. Every row below has a tested
+install path, meaning the file lands where the tool expects it. **"The tool then actually applied
+the instructions" has not been measured on any specific version.** Copying a file is not the same
+as the tool obeying it, so validate before claiming compatibility: ask the assistant to state the
+operating loop, then give it a disposable task and watch whether it defines a signal and reverts
+a failed attempt.
+
+| Integration | Install surface | Status | How to validate behavior |
+| --- | --- | --- | --- |
+| Root-instruction tools | `AGENTS.md` | Install surface verified; behavior unverified | Ask for the operating loop, then run a disposable eval task. |
+| Claude Code plugin | `.claude-plugin/`, `skills/`, `commands/` | Install surface verified; behavior unverified | Confirm the skill and each command appear, then complete a disposable eval task. |
+| Claude Code rules | `CLAUDE.md` | Install surface verified; behavior unverified | Confirm the file loads without replacing existing project rules. |
+| Cursor | `.cursor/rules/autoevolve.mdc` | Install surface verified; behavior unverified | Confirm the rule is always applied and run a disposable eval task. |
+| Windsurf | `.windsurf/rules/autoevolve.md` | Install surface verified; behavior unverified | Confirm the rule path for the installed version and run a disposable eval task. |
+| GitHub Copilot | `.github/copilot-instructions.md` | Install surface verified; behavior unverified | Confirm repository instructions are read in the target experience. |
+
+When a tool's behaviour is actually tested, replace its Status with the tool version and the date.
