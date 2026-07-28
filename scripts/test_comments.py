@@ -64,6 +64,22 @@ class CommentedOutCodeTests(unittest.TestCase):
     def test_an_annotation_that_assigns_is_still_code(self) -> None:
         self.assertTrue(comments.is_commented_out_code("retries: int = 3"))
 
+    def test_a_space_before_the_paren_means_prose(self) -> None:
+        """locale.py:1641 lists `# Quechua (Peru)`, which parses as a call. PEP 8 forbids f (x)."""
+        for prose in ["Quechua (Peru)", "Romanian (Romania)", "normalize (see the RFC)"]:
+            self.assertFalse(comments.is_commented_out_code(prose), prose)
+        self.assertTrue(comments.is_commented_out_code("normalize(key)"))
+
+    def test_a_bare_call_beside_live_code_is_an_annotation(self) -> None:
+        """statistics.py:1260 records where a magic constant came from, in a trailing comment."""
+        self.assertFalse(comments.is_commented_out_code("sqrt(1 / sys.float_info.max)",
+                                                        trailing=True))
+        self.assertTrue(comments.is_commented_out_code("sqrt(1 / sys.float_info.max)"))
+        self.assertEqual(tiers("scale = 2.0 ** -512  # sqrt(1 / sys.float_info.max)\n"), [])
+
+    def test_an_assignment_beside_live_code_is_still_suspicious(self) -> None:
+        self.assertTrue(comments.is_commented_out_code("cache = {}", trailing=True))
+
 
 class DividerTests(unittest.TestCase):
     def test_flags_a_bare_rule(self) -> None:
@@ -193,8 +209,7 @@ class TargetSelectionTests(unittest.TestCase):
 class UnreadableInputTests(unittest.TestCase):
     def test_an_unbalanced_file_keeps_the_comments_read_before_the_lexer_stopped(self) -> None:
         """tokenize raises at EOF inside an open bracket; list() would discard the whole batch."""
-        self.assertEqual(tiers("def broken(:\n    # print(x)\n    # cache = {}\n"),
-                         ["noise", "noise"])
+        self.assertEqual(tiers("def broken(:\n    # print(x)\n    # cache = {}\n"), ["noise"])
 
     def test_a_syntax_error_does_not_raise(self) -> None:
         scan_source("def broken(:\n    pass\n")
@@ -204,6 +219,63 @@ class UnreadableInputTests(unittest.TestCase):
 
     def test_a_comment_only_file_is_handled(self) -> None:
         self.assertEqual(tiers("# x = 1\n"), ["noise"])
+
+
+class CommentBlockTests(unittest.TestCase):
+    """Consecutive own-line comments are one comment. Every case here is a real stdlib finding.
+
+    A 30-finding hand audit of the Python standard library found that judging `#` lines
+    independently caused every false positive it produced. These four are the originals.
+    """
+
+    def test_a_sentence_continued_onto_another_line(self) -> None:
+        """dataclasses.py:807, where `# module).` was matched against the code below it."""
+        self.assertEqual(tiers("""
+            # If typing has not been imported, then it's impossible for any
+            # annotation to be a ClassVar.  So, only look for ClassVar if
+            # typing has been imported by any module (not necessarily cls's
+            # module).
+            typing = sys.modules.get('typing')
+        """), [])
+
+    def test_an_invariant_stated_across_two_lines(self) -> None:
+        """fractions.py:134. The second line restates identifiers; the block states a why."""
+        self.assertEqual(tiers("""
+            # Adjust in the case where significand == 10**figures, to ensure that
+            # 10**(figures - 1) <= significand < 10**figures.
+            if len(str(significand)) == figures + 1:
+                significand //= 10
+        """), [])
+
+    def test_an_example_inside_an_explanation(self) -> None:
+        """typing.py:1556. An indented example is not a disabled statement."""
+        self.assertEqual(tiers("""
+            # Here, `C.__args__` should be (int, str) - NOT ([int], str).
+            # That means that if we had something like...
+            #   D = C[[int, str], float]
+            # ...we need to be careful.
+            args = C.__args__
+        """), [])
+
+    def test_a_row_of_an_ascii_table(self) -> None:
+        """dataclasses.py:162. A rule inside a drawn table is content, not a separator."""
+        self.assertEqual(tiers("""
+            # | False |       |       |
+            # +-------+-------+-------+
+            # | True  | add   |       |
+            flags = compute()
+        """), [])
+
+    def test_a_wholly_commented_out_block_is_still_caught(self) -> None:
+        self.assertEqual(tiers("""
+            # conn = sqlite3.connect("users.db")
+            # c = conn.cursor()
+            # result = c.fetchone()
+            value = 1
+        """), ["noise"])
+
+    def test_a_block_of_pure_rules_is_still_decoration(self) -> None:
+        self.assertEqual(tiers("# =========\n# ---------\nvalue = 1\n"), ["noise"])
 
 
 class RepositoryCalibrationTests(unittest.TestCase):
