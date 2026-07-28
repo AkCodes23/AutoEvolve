@@ -28,9 +28,14 @@ markers are left alone: they are work markers, not descriptions.
 Python only. Deciding whether a comment holds a statement needs a parser, and the standard
 library ships one for this language and no other.
 
-MEASURED ACCURACY, and the limits that come with it. Over the Python standard library, 551
-files and 282k lines by hundreds of authors, this reports 0.57 noise and 1.04 candidates per
-KLOC. Two hand audits of 30 random findings each drove every detector here; the residual known
+MEASURED ACCURACY, and the limits that come with it. Measured on code nobody here wrote, since
+the first calibration used twelve files by one author and shared every habit with the tool.
+Noise per KLOC, via `scripts/corpus_audit.py`:
+
+    stdlib 0.57 | jinja2 0.49 | pip 0.30 | setuptools 0.30 | numpy 0.26 | urllib3 0.17
+    | click 0.00 | requests 0.47                            (626k lines, 8 corpora)
+
+Two hand audits of 30 random stdlib findings drove every detector here. The residual known
 errors, all found that way and all left in deliberately:
 
   * A banner block (`# ====` / `# Section` / `# ====`) is NOT reported, because the same shape
@@ -54,6 +59,7 @@ import re
 import sys
 import textwrap
 import tokenize
+import warnings
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from callers import changed_files, git  # noqa: E402
@@ -129,6 +135,22 @@ def words(text: str) -> set[str]:
     return found
 
 
+def quietly_parse(source: str) -> ast.Module | None:
+    """Parse without letting the attempt itself say anything.
+
+    Every comment in a file is offered to `ast.parse`, and a perfectly ordinary one like
+    `# re.compile("\\s+")` makes it emit a SyntaxWarning about the escape. Those land on stderr
+    mixed into the report, blaming `<unknown>:1`, for comments the tool then correctly ignores.
+    Whether text parses is a question, not an event worth narrating.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            return ast.parse(source)
+        except (SyntaxError, ValueError, MemoryError, RecursionError):
+            return None
+
+
 def is_commented_out_code(body: str, trailing: bool = False) -> bool:
     """True when the text after the `#` parses as a statement rather than reading as prose.
 
@@ -146,9 +168,8 @@ def is_commented_out_code(body: str, trailing: bool = False) -> bool:
         return False
     wrapped = "def _():\n" + textwrap.indent(body, "    ")
     for source, unwrap in ((body, False), (wrapped, True)):
-        try:
-            tree = ast.parse(source)
-        except (SyntaxError, ValueError, MemoryError, RecursionError):
+        tree = quietly_parse(source)
+        if tree is None:
             continue
         node = tree.body[0] if tree.body else None
         if unwrap:
