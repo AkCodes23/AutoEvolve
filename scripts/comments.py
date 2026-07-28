@@ -334,10 +334,9 @@ def scan_source(source: str, path: str) -> list[tuple[int, str, str]]:
     lines = source.splitlines()
 
     found: list[tuple[int, str, str]] = []
-    try:
-        found.extend(find_vacuous_docstrings(ast.parse(source, filename=path)))
-    except (SyntaxError, ValueError):
-        pass
+    tree = quietly_parse(source)
+    if tree is not None:
+        found.extend(find_vacuous_docstrings(tree))
 
     for block in comment_blocks(source, lines):
         row = block[0].start[0]

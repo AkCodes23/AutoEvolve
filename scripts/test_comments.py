@@ -13,6 +13,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+import warnings
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import comments  # noqa: E402
@@ -336,6 +337,16 @@ class BaselineTests(unittest.TestCase):
         twice = "# cache = {}\nvalue = 1\n\n\n# cache = {}\nother = 2\n"
         self.assertEqual(len(comments.scan(self.write(twice))), 2)
         self.assertEqual(len(comments.new_findings(self.write(twice), once)), 1)
+
+
+class QuietTests(unittest.TestCase):
+    def test_scanning_emits_no_warnings_of_its_own(self) -> None:
+        """A regex with a bare backslash made ast.parse warn onto stderr, into the report."""
+        source = 'import re\nPAT = re.compile("\\\\s+")\n# old = re.compile("\\\\d+")\nx = 1\n'
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            scan_source(source)
+        self.assertEqual([str(w.message) for w in caught], [])
 
 
 class RepositoryCalibrationTests(unittest.TestCase):
