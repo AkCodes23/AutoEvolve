@@ -18,7 +18,14 @@ copy it into your repo; your existing AI tools read it and follow its discipline
 
 No dependencies, no runtime installation, and no build step required.
 
-Optional: Run `python autoevolve.py install --target /path/to/project` to automatically copy IDE-specific adapter files into `.cursor/rules/`, `.windsurfrules`, or `.github/copilot-instructions.md`.
+Optional: Run `python autoevolve.py install --target /path/to/project` to also copy IDE-specific adapter files into `.cursor/rules/`, `.windsurf/rules/`, or `.github/copilot-instructions.md`.
+
+**One profile.** [`AGENTS.md`](AGENTS.md) is the whole mindset (37 lines), and the per-tool files
+in [`adapters/`](adapters/) are generated from it, so hand-copying and running the installer give
+you the same text. There used to be a second, longer profile; a measured run scored it lower at 87
+percent more context, so it was retired rather than maintained. See
+[`docs/RESULTS.md`](docs/RESULTS.md). `python3 evals/profile.py --tokens` prints what it costs per
+turn.
 
 ---
 
@@ -145,6 +152,24 @@ Step by step:
 8. **Repeat, and do not stop when stuck.** Out of ideas is not a stopping point: re-read the
    code and references, combine near-misses, or try a radical alternative. Stop only at a
    real terminal state or a genuine decision for a human.
+
+**Prefer a mechanism to a reminder.** Step 0 asks you to check a symbol's callers before
+editing, and that instruction is easy to write and easy to skip. Measurement is blunt about it:
+across roughly 580 graded trials, adding more instruction text produced no detectable
+improvement, and on one held-out task 63 of 64 agents fixed the single reported symptom while
+leaving five other real contract violations untouched in the same file. The failure is anchoring
+on the bug report, not ignorance of the rule, so more forceful wording does not move it. What
+moves it is removing the choice: run something that does the looking and puts the answer in front
+of you. [`scripts/callers.py`](scripts/callers.py) is the small version of that idea, for Python
+repositories:
+
+```bash
+python3 scripts/callers.py                      # every symbol in your uncommitted changes
+python3 scripts/callers.py --paths src/api.py   # or just the files you care about
+```
+
+The general lesson generalizes past this one script: when a step of the loop keeps getting
+skipped, prefer converting it into something that runs over restating it more emphatically.
 
 **Git is the experiment store.** HEAD is always your single best-known solution; a commit
 is a kept experiment; a targeted revert of only the experiment's known files throws one away
@@ -283,14 +308,14 @@ cd AutoEvolve
 ./install.sh --target /path/to/your/repo
 ```
 
-Use `--profile full` only when you deliberately want the longer operating manual in every
+There is one profile, so there is nothing to choose in every
 agent turn; benchmark it against the core first.
 
 Or copy the operating core in by hand after reviewing the release:
 
 ```bash
 # Universal cross-platform CLI installation into any target project:
-python AutoEvolve/autoevolve.py install --target /path/to/your/repo --profile core
+python AutoEvolve/autoevolve.py install --target /path/to/your/repo
 python AutoEvolve/autoevolve.py init --target /path/to/your/repo
 python AutoEvolve/autoevolve.py check --target /path/to/your/repo
 
@@ -328,12 +353,11 @@ task, and keep a `JOURNAL.md` as you go.
 ## What is in this repo
 
 ```
-AGENTS.md                     the lean operating core (read/loaded every turn)
+AGENTS.md                     the lean operating core (read/loaded every turn), full profile
 README.md                     this file: the full explanation
-`autoevolve.py`                 universal cross-platform CLI tool (install, init, check)
-`install.sh`                    POSIX one-command installer (auto-detects tools)
-`install.ps1`                   Windows PowerShell native installer
-`scripts/check_target.py`       target repository readiness checker (0-100% score)
+autoevolve.py                 cross-platform CLI: install, init, check, setup, journal, hooks, loop
+install.sh                    POSIX one-command installer (auto-detects tools)
+install.ps1                   Windows PowerShell native installer
 skills/autoevolve/SKILL.md    the mindset as a loadable agent skill
 commands/                     invocable prompt templates
   baseline.md                 define the signal and record the baseline
@@ -341,8 +365,7 @@ commands/                     invocable prompt templates
   simplify.md                 apply the ladder to shrink code
   review.md                   an over-engineering review
   journal.md                  the experiment-log format
-adapters/                     thin per-tool rule files, all pointing at AGENTS.md
-  _core.md                    the single source the four inline adapters are generated from
+adapters/                     per-tool copies of AGENTS.md, generated (never edit by hand)
   claude.md                   Claude Code (copy to CLAUDE.md)
   cursor.mdc                  Cursor
   windsurf.md                 Windsurf
@@ -353,32 +376,45 @@ docs/
   EXAMPLE.md                  one task walked end to end through the loop
   CHECKLIST.md                the operating checklist, standalone
   INSTALL.md                  how to add this to your repo
-  BENCHMARK.md                agent benchmark protocol (experimental, Proof-tier: not yet run)
+  BENCHMARK.md                agent benchmark protocol (experimental: not yet run)
   COMPATIBILITY.md            tool matrix (install surfaces verified; behavior not yet tested)
+  RESULTS.md                  measured results, and what was retracted and why
   SOURCES.md                  attribution and further reading
 evals/                        runnable scenarios for measuring the mindset's effect
   run.py                      grade a scenario: python3 evals/run.py 01_bugfix
-  profile.py                  sandboxed prompt A/B (control vs core vs full)
-  agent_benchmark.py          sandboxed benchmark runner (experimental, Proof-tier)
+  profile.py                  sandboxed prompt A/B (control, karpathy, ponytail, core, full)
+  agent_benchmark.py          sandboxed benchmark runner for a real tool-using agent
+  agent_loop_sim.py           multi-turn best-of-N observer (read its docstring before citing it)
   sandbox.py                  fail-closed Docker execution boundary for generated code
+  work_report.py              compare conditions on WORK DONE (churn) instead of tokens
+  test_profile.py             regression tests for profiler accounting and the sandbox controls
+  manifest.json               the task set agent_benchmark.py runs
+  competitors/                the two rulesets AutoEvolve is benchmarked against
+  scenarios/                  11 scenarios, each with broken starter code plus its own grader
+  results/                    raw JSON Lines datasets backing any published number
+variants/                     candidate mindset revisions, measured before adoption, never shipped
 .claude-plugin/               Claude Code plugin + marketplace manifests
 scripts/
   check.py                    the self-check (no em dashes, links, tool-neutral core, adapters, JSON)
-  build_adapters.py           regenerate the adapters from adapters/_core.md
+  build_adapters.py           regenerate the adapters from AGENTS.md
+  check_target.py             target repository readiness check
+  branch.py                   deep-mode population branches (evolve/*)
+  run_quiet.py                run a command and summarize it, to save agent context
+  callers.py                  list the call sites of every symbol you just changed
 .github/workflows/check.yml   runs the self-check on every push and pull request
 CONTRIBUTING.md   CHANGELOG.md   LICENSE
 ```
 
 The design follows ponytail's *one source of truth, many thin adapters*: `AGENTS.md` is the
 source of truth. The four inline adapters carry a condensed copy for tools that read rules
-inline, and they are **generated** from `adapters/_core.md` by `scripts/build_adapters.py`
-so they cannot drift. When the mindset changes, change `AGENTS.md` (and `_core.md` if the
+inline, and they are **generated** from `AGENTS.md` by `scripts/build_adapters.py`
+so they cannot drift. When the mindset changes, change `AGENTS.md` (and nothing else, if the
 condensed core moves).
 
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md). In short: `AGENTS.md` is the single source of
-truth; the adapters are generated from `adapters/_core.md` (run `python3
+truth; the adapters are generated from `AGENTS.md` (run `python3
 scripts/build_adapters.py` after editing it); and before opening a pull request, run the
 self-check that CI also runs:
 
@@ -388,7 +424,7 @@ python3 scripts/check.py
 
 It confirms there are no em dashes, that the mindset core stays tool-neutral (tool names
 belong in `adapters/`), that every internal link resolves, and that the adapters are up to
-date with `adapters/_core.md`. To measure the mindset's effect on a real task, run the
+date with `AGENTS.md`. To measure the mindset's effect on a real task, run the
 scenarios in [`evals/`](evals/): `python3 evals/run.py --all`. Versions are tracked in
 [`CHANGELOG.md`](CHANGELOG.md); pin one when you install so a moving `main` never changes
 the mindset under you.

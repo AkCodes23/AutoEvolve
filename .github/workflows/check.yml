@@ -18,6 +18,10 @@ jobs:
           python-version: "3.12"
       - name: Run the AutoEvolve self-check
         run: python3 scripts/check.py
+      - name: Compile every module
+        # Without this, a module CI never imports can ship broken. agent_loop_sim.py was never
+        # imported by any CI step, and that is where a host-execution regression lived.
+        run: python3 -m compileall -q evals scripts autoevolve.py
       - name: Verify the eval harness runs
         run: python3 evals/run.py --smoke
       - name: Verify the profiler pipeline (offline)
@@ -31,3 +35,45 @@ jobs:
           ./install.sh --target "$RUNNER_TEMP/autoevolve-target" --dry-run
       - name: Validate agent benchmark CLI
         run: python3 evals/agent_benchmark.py --help
+      - name: Validate the loop simulator CLI
+        run: python3 evals/agent_loop_sim.py --help
+      - name: Validate the work report CLI
+        run: python3 evals/work_report.py --help
+      - name: Validate the task manifest against the scenarios on disk
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(".")
+          manifest = json.loads((root / "evals" / "manifest.json").read_text(encoding="utf-8"))
+          required = {"id", "source", "task", "code_file"}
+          problems = []
+          for task in manifest["tasks"]:
+              missing = required - set(task)
+              if missing:
+                  problems.append(f"{task.get('id', '?')} missing {sorted(missing)}")
+              source = root / task["source"]
+              if not source.is_dir():
+                  problems.append(f"{task['id']} source does not exist: {task['source']}")
+              elif not (source / task["code_file"]).is_file():
+                  problems.append(f"{task['id']} code_file missing: {task['code_file']}")
+          on_disk = {d.name for d in (root / "evals" / "scenarios").iterdir()
+                     if d.is_dir() and not d.name.startswith((".", "__"))}
+          covered = {pathlib.Path(t["source"]).name for t in manifest["tasks"]}
+          if on_disk - covered:
+              problems.append(f"scenarios not in the manifest: {sorted(on_disk - covered)}")
+          if problems:
+              print("\n".join(problems)); sys.exit(1)
+          print(f"manifest OK: {len(manifest['tasks'])} tasks covering {len(covered)} scenarios")
+          PY
+      - name: Verify the PowerShell installer parses
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ./install.ps1).Path, [ref]$null, [ref]$errors)
+          if ($errors -and $errors.Count -gt 0) {
+            $errors | ForEach-Object { $_.ToString() }
+            exit 1
+          }
+          "install.ps1 parses cleanly"

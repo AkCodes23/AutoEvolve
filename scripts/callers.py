@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""List the callers of every symbol you just changed.
+
+    python scripts/callers.py                      # symbols in your uncommitted changes
+    python scripts/callers.py --paths src/api.py   # symbols in specific files
+    python scripts/callers.py --rev HEAD~3         # symbols changed since a revision
+
+WHY THIS EXISTS. The loop's step 0 says "confirm bounds, dependencies, and callers before
+editing", and an agent that follows it writes better changes. The trouble is that following it
+is a choice the agent has to make, and measurement says it usually does not: across roughly 580
+graded trials, adding more instruction text produced no detectable improvement, because the
+failure mode is not ignorance of the rule. It is anchoring on the one symptom in the bug report.
+In one held-out task, 63 of 64 agents fixed the single reported symptom and left five other real
+contract violations untouched in the same file, each documented in that file's own docstrings.
+
+Rewording the instruction cannot fix that. Removing the choice can. This script does the looking
+and puts the answer in front of the agent, which is a mechanism rather than a request. Run it
+after step 3 and before step 4, and read every call site it prints: each one is a place your
+change either must keep working or must be updated to match.
+
+Standard library only, so it runs in any checkout with no install step.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import os
+import re
+import subprocess
+import sys
+
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache",
+             ".venv", "venv", ".mypy_cache", ".tox", "site-packages", "build", "dist"}
+# Names so common that every hit would be noise, which would defeat the purpose: a report nobody
+# reads is worse than no report.
+IGNORED = {"main", "run", "get", "set", "test", "setup", "init", "__init__", "wrapper", "inner"}
+
+
+def git(args: list[str], cwd: str) -> tuple[int, str]:
+    res = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    return res.returncode, res.stdout
+
+
+def changed_files(root: str, rev: str | None) -> list[str]:
+    """Files changed versus a revision, or the current uncommitted work if no revision."""
+    args = ["diff", "--name-only", rev] if rev else ["diff", "--name-only", "HEAD"]
+    code, out = git(args, root)
+    if code != 0:
+        return []
+    files = set(out.split())
+    if not rev:  # include staged and freshly added work
+        for extra in (["diff", "--name-only", "--cached"], ["ls-files", "--others", "--exclude-standard"]):
+            code, out = git(extra, root)
+            if code == 0:
+                files.update(out.split())
+    return sorted(f for f in files if f.endswith(".py"))
+
+
+def defined_symbols(path: str) -> list[tuple[str, int]]:
+    """Top-level functions and classes, plus public methods, defined in one file."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            tree = ast.parse(handle.read(), filename=path)
+    except (OSError, SyntaxError):
+        return []
+    found = []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            found.append((node.name, node.lineno))
+            if isinstance(node, ast.ClassDef):
+                for child in node.body:
+                    if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                            and not child.name.startswith("_"):
+                        found.append((child.name, child.lineno))
+    return [(name, line) for name, line in found
+            if name not in IGNORED and not name.startswith("__")]
+
+
+def python_files(root: str) -> list[str]:
+    out = []
+    for dirpath, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        out.extend(os.path.join(dirpath, f) for f in files if f.endswith(".py"))
+    return out
+
+
+def find_callers(root: str, symbols: dict, corpus: list[str]) -> dict:
+    """Map each symbol to the (file, line, text) sites that mention it elsewhere."""
+    patterns = {name: re.compile(rf"\b{re.escape(name)}\b") for name in symbols}
+    hits: dict[str, list] = {name: [] for name in symbols}
+    for path in corpus:
+        rel = os.path.relpath(path, root).replace(os.sep, "/")
+        try:
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                lines = handle.readlines()
+        except OSError:
+            continue
+        for name, pattern in patterns.items():
+            # The defining file is scanned too, with only the `def` line itself skipped.
+            # Skipping the whole file hid every same-module caller, which is the common shape of
+            # a single-file fix and precisely the case this tool exists for: a shared helper with
+            # three siblings calling it, all in the file you were handed. Worse, the tool then
+            # reported "no references found" and suggested the symbol might be dead code.
+            own_file = rel == symbols[name]["file"]
+            definition_line = symbols[name]["line"] if own_file else None
+            call = re.compile(rf"\b{re.escape(name)}\s*\(")
+            for i, line in enumerate(lines, 1):
+                if i == definition_line:
+                    continue
+                if pattern.search(line):
+                    # A bare word match may be a docstring or a task description rather than a
+                    # call. Both are worth seeing, but only one is a contract you can break, so
+                    # they are labelled instead of silently mixed.
+                    kind = "call" if call.search(line) else "text"
+                    hits[name].append((rel, i, kind, line.strip()[:104]))
+    return hits
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--paths", nargs="*", help="files to analyze instead of the git diff")
+    parser.add_argument("--rev", help="compare against this revision instead of the working tree")
+    parser.add_argument("--root", default=".", help="repository root to search (default: .)")
+    parser.add_argument("--max-per-symbol", type=int, default=12,
+                        help="cap the sites listed per symbol, so the report stays readable")
+    args = parser.parse_args()
+
+    root = os.path.abspath(args.root)
+    targets = args.paths if args.paths else changed_files(root, args.rev)
+    if not targets:
+        print("No changed Python files found. Pass --paths explicitly, or check --rev.")
+        return 0
+
+    symbols: dict = {}
+    for rel in targets:
+        full = rel if os.path.isabs(rel) else os.path.join(root, rel)
+        norm = os.path.relpath(full, root).replace(os.sep, "/")
+        for name, line in defined_symbols(full):
+            symbols[name] = {"file": norm, "line": line}
+    if not symbols:
+        print(f"No top-level functions or classes found in: {', '.join(targets)}")
+        return 0
+
+    hits = find_callers(root, symbols, python_files(root))
+    print(f"Changed files: {', '.join(targets)}")
+    print(f"Symbols defined there: {len(symbols)}\n")
+
+    uncalled = []
+    for name in sorted(symbols):
+        sites = hits[name]
+        origin = f"{symbols[name]['file']}:{symbols[name]['line']}"
+        if not sites:
+            uncalled.append(f"{name} ({origin})")
+            continue
+        # Real call sites first: those are the ones that can break.
+        sites.sort(key=lambda s: (s[2] != "call", s[0], s[1]))
+        calls = sum(1 for s in sites if s[2] == "call")
+        shown = sites[:args.max_per_symbol]
+        print(f"{name}  defined {origin}  -> {calls} call site(s), {len(sites) - calls} text mention(s)")
+        for rel, line, kind, text in shown:
+            print(f"    [{kind}] {rel}:{line}  {text}")
+        if len(sites) > len(shown):
+            # Never silently truncate: a hidden call site is the exact failure this tool exists
+            # to prevent.
+            print(f"    ... and {len(sites) - len(shown)} more (raise --max-per-symbol to see them)")
+        print()
+
+    if uncalled:
+        print("No references found elsewhere for: " + ", ".join(uncalled))
+        print("  Either they are entry points, or they are dead code worth deleting (the ladder")
+        print("  prefers deletion). Confirm which before moving on.")
+    print("\nEvery [call] site above either must keep working after your change, or must be")
+    print("updated to match it. Check them before you run the signal, not after. A [text] line is")
+    print("a mention in prose or a docstring: not a contract, but often a claim that just went stale.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

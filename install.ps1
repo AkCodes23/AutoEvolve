@@ -12,9 +12,6 @@ every skipped file so users do not mistake a partial installation for a complete
 .PARAMETER Target
 Target directory where AutoEvolve instructions should be installed. Defaults to current directory.
 
-.PARAMETER Profile
-Mindset profile to install: 'core' (condensed, default) or 'full' (complete AGENTS.md).
-
 .PARAMETER DryRun
 If set, previews files that would be created without writing any files.
 #>
@@ -23,10 +20,6 @@ If set, previews files that would be created without writing any files.
 param (
     [Parameter(Position=0)]
     [string]$Target = (Get-Location).Path,
-
-    [Parameter()]
-    [ValidateSet("core", "full")]
-    [string]$Profile = "core",
 
     [Parameter()]
     [switch]$DryRun
@@ -39,13 +32,13 @@ if (-not $SourceDir) {
     $SourceDir = (Get-Location).Path
 }
 
-if (-not (Test-Path -Path (Join-Path $SourceDir "AGENTS.md")) -or -not (Test-Path -Path (Join-Path $SourceDir "adapters\_core.md"))) {
-    Write-Error "Installer source is incomplete. Download a release checkout; do not pipe this script from a URL."
+if (-not (Test-Path -Path (Join-Path $SourceDir "AGENTS.md"))) {
+    [Console]::Error.WriteLine("Installer source is incomplete. Download a release checkout; do not pipe this script from a URL.")
     exit 65
 }
 
 if (-not (Test-Path -Path $Target)) {
-    Write-Error "Target directory does not exist: $Target"
+    [Console]::Error.WriteLine("Target directory does not exist: $Target")
     exit 66
 }
 
@@ -75,7 +68,7 @@ function Install-AutoEvolveFile {
     $destFile = Join-Path $TargetDir $DestinationRel
 
     if (-not (Test-Path -Path $sourceFile)) {
-        Write-Error "Missing installer source: $SourceRel"
+        [Console]::Error.WriteLine("Missing installer source: $SourceRel")
         exit 65
     }
 
@@ -114,8 +107,7 @@ function Install-AutoEvolveFile {
 }
 
 Write-Host "AutoEvolve: source=$SourceDir target=$TargetDir"
-$CanonicalSource = if ($Profile -eq "full") { "AGENTS.md" } else { "adapters\_core.md" }
-Write-Host "AutoEvolve profile: $Profile"
+$CanonicalSource = "AGENTS.md"
 
 Install-AutoEvolveFile -SourceRel $CanonicalSource -DestinationRel "AGENTS.md" -IsCanonical $true
 
@@ -150,7 +142,11 @@ if ($script:CanonicalSkipped -and $script:CanonicalPresent) {
 }
 
 if ($script:CanonicalSkipped) {
-    Write-Error "Manual merge required: AGENTS.md already exists in the target and does not carry AutoEvolve."
+    # Not Write-Error: with $ErrorActionPreference = "Stop" it terminates, so every line below
+    # was unreachable and the documented exit code 2 collapsed to 1. The Windows user was told
+    # nothing about the adapters that had in fact just been written and were already steering
+    # their agents. Write to stderr directly instead.
+    [Console]::Error.WriteLine("Manual merge required: AGENTS.md already exists in the target and does not carry AutoEvolve.")
     Write-Host "Review $SourceDir\$CanonicalSource and merge it under a clear heading, then rerun -DryRun to inspect adapters."
     if ($script:Written) {
         Write-Host "Note: the tool adapters listed above WERE written and are already active for those tools."

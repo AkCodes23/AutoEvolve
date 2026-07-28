@@ -1,4 +1,4 @@
-"""User authentication module. This is the code under test. See grade.py.
+"""User authentication module. This is the code under test.
 
 VULNERABILITIES:
 - get_user_file() is vulnerable to path traversal

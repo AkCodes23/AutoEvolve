@@ -10,10 +10,9 @@ set -eu
 
 usage() {
   cat <<'EOF'
-Usage: ./install.sh [--target DIRECTORY] [--profile core|full] [--dry-run]
+Usage: ./install.sh [--target DIRECTORY] [--dry-run]
 
-Run from a reviewed, immutable release checkout. `core` is the default context-efficient
-profile; use `full` only when you intentionally want the longer operating manual.
+Run from a reviewed, immutable release checkout. There is one mindset profile: AGENTS.md.
 Existing files are never overwritten.
 If the target already has AGENTS.md, this command exits 2 after printing merge guidance.
 EOF
@@ -22,7 +21,6 @@ EOF
 SOURCE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 TARGET_DIR=$(pwd)
 DRY_RUN=0
-PROFILE=core
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -34,12 +32,6 @@ while [ "$#" -gt 0 ]; do
     --dry-run)
       DRY_RUN=1
       shift
-      ;;
-    --profile)
-      [ "$#" -ge 2 ] || { echo "--profile needs core or full" >&2; exit 64; }
-      PROFILE=$2
-      case "$PROFILE" in core|full) ;; *) echo "--profile must be core or full" >&2; exit 64;; esac
-      shift 2
       ;;
     -h|--help)
       usage
@@ -53,7 +45,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-[ -f "$SOURCE_DIR/AGENTS.md" ] && [ -f "$SOURCE_DIR/adapters/_core.md" ] || {
+[ -f "$SOURCE_DIR/AGENTS.md" ] || {
   echo "Installer source is incomplete. Download a release checkout; do not pipe this script from a URL." >&2
   exit 65
 }
@@ -68,12 +60,11 @@ OTHER_SKIPPED=0
 WRITTEN=0
 
 # A re-run, or a target where the mindset was already merged by hand, is a finished install and
-# must not be reported as a failure. Anchor on the heading both profiles carry ("# AutoEvolve
-# mindset (condensed)" and "# AutoEvolve, the operating core"), and accept it at any heading
+# must not be reported as a failure. Anchor on the AutoEvolve-Core marker or the heading, at any
 # depth so a file merged under a sub-heading still counts. Prose that merely mentions the name
 # does not match.
 CANONICAL_PRESENT=0
-if [ -e "$TARGET_DIR/AGENTS.md" ] && (grep -qE 'AutoEvolve-Core' "$TARGET_DIR/AGENTS.md" 2>/dev/null || grep -qE '^#+ AutoEvolve' "$TARGET_DIR/AGENTS.md" 2>/dev/null); then
+if [ -e "$TARGET_DIR/AGENTS.md" ] && (grep -qE 'AutoEvolve-Core' "$TARGET_DIR/AGENTS.md" 2>/dev/null || grep -qE '^#+[[:space:]]+AutoEvolve' "$TARGET_DIR/AGENTS.md" 2>/dev/null); then
   CANONICAL_PRESENT=1
 fi
 
@@ -101,8 +92,16 @@ install_file() {
   destination_dir=$(dirname -- "$destination_file")
   mkdir -p "$destination_dir"
   temporary_file=$destination_dir/.autoevolve-install-$$.tmp
+  # Tighten only while the half-written temp file exists, then restore. Setting `umask 077` and
+  # never restoring it left every installed instruction file mode 0600 and every directory the
+  # installer created mode 0700, regardless of the user's umask, while install.ps1 produced
+  # ordinary readable files. These are documentation, not secrets, and the two installers must
+  # not hand the same project different permissions.
+  previous_umask=$(umask)
   umask 077
   cp "$source_file" "$temporary_file"
+  umask "$previous_umask"
+  chmod a+r "$temporary_file" 2>/dev/null || true
   # `ln` fails rather than replacing a file if another process created the target meanwhile.
   if ln "$temporary_file" "$destination_file" 2>/dev/null; then
     rm -f "$temporary_file"
@@ -116,12 +115,7 @@ install_file() {
 }
 
 echo "AutoEvolve: source=$SOURCE_DIR target=$TARGET_DIR"
-if [ "$PROFILE" = full ]; then
-  CANONICAL_SOURCE=AGENTS.md
-else
-  CANONICAL_SOURCE=adapters/_core.md
-fi
-echo "AutoEvolve profile: $PROFILE"
+CANONICAL_SOURCE=AGENTS.md
 install_file "$CANONICAL_SOURCE" AGENTS.md 1
 
 [ -d "$TARGET_DIR/.claude" ] || [ -f "$TARGET_DIR/CLAUDE.md" ] && install_file adapters/claude.md CLAUDE.md || true

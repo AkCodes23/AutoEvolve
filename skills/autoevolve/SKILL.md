@@ -68,6 +68,25 @@ I continue?"; **pause for a human** before anything hard to reverse (deleting da
 force-pushing, destructive or outbound actions) or on genuine ambiguity. Leave an audit
 trail (small commits plus the journal) so a human can trust and roll back your work.
 
+"Keep going when stuck" is bounded: **stop after 10 loops** and check in with a human, as
+`AGENTS.md` requires. Persevering through a hard problem is the
+point; looping past 10 without new information is not.
+
+When reverting, restore only the paths you touched (from `HEAD`, so a staged change is also
+undone) and delete only the untracked files you created. Never bulk-discard a dirty tree: work
+you did not create may be in it, and `git checkout -- .` destroys it unrecoverably.
+
+## Modes
+
+The mode sets ceremony, not rigor. Correctness, validation, and security are never reduced.
+
+- `quick`: a small, obviously-scoped change. Define the signal, make the diff, verify, keep or
+  revert. Journal one line. No branching.
+- `default`: the full loop as described above, one hypothesis at a time against `HEAD`.
+- `deep`: hold competing candidates on `evolve/<niche>` branches, score each against the same
+  frozen signal, and promote the winner to `HEAD`. Use when several approaches are plausible and
+  you want to compare them rather than guess.
+
 ## Conventions
 
 - Mark a deliberate corner-cut with an `evolve:` comment naming the ceiling and the

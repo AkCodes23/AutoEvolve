@@ -48,7 +48,7 @@ own instructions: *"Follow the operating mindset in `AGENTS.md`."*
 
 ```bash
 # from your repo root, after reviewing a release checkout
-cp /path/to/AutoEvolve/adapters/_core.md ./AGENTS.md
+cp /path/to/AutoEvolve/AGENTS.md ./AGENTS.md
 ```
 
 Use `AGENTS.md` from the release checkout instead only when you deliberately want the full

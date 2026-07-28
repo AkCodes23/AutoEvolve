@@ -8,9 +8,9 @@ Thanks for improving AutoEvolve. It is Markdown, not software, so contributing i
 four inline adapters (`adapters/claude.md`, `cursor.mdc`, `windsurf.md`,
 `copilot-instructions.md`) are **generated** from one file:
 
-- Edit the shared condensed core in **`adapters/_core.md`** (never the adapters directly).
+- Edit the mindset in **`AGENTS.md`** (never the adapters directly: they are generated).
 - Regenerate: `python3 scripts/build_adapters.py`
-- If you change the mindset itself, edit `AGENTS.md`, and update `adapters/_core.md` to
+- There is ONE profile. If you change the mindset, edit `AGENTS.md`, then run the generator to
   match if the change touches the condensed core.
 
 ## Before you open a PR
@@ -23,7 +23,7 @@ python3 scripts/check.py
 
 It confirms there are no em dashes, that the mindset core stays tool-neutral (tool names
 belong in `adapters/`), that every internal link resolves, and that the adapters are
-up to date with `adapters/_core.md`.
+up to date with `AGENTS.md`.
 
 ## Conventions
 
