@@ -125,9 +125,7 @@ def _checks():
     return out
 
 
-# --------------------------------------------------------------------------------------
 # helpers. Each returns True/False, or (ok, detail) when a detail helps the reader.
-# --------------------------------------------------------------------------------------
 
 
 def _raises(fn, allowed):

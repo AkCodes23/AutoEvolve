@@ -52,19 +52,42 @@ class CommentedOutCodeTests(unittest.TestCase):
             "python3 scripts/callers.py --rev HEAD~3",
             "e.g. parse_tags(\"a, b\") drops the empty entry",
             "TODO", "ok", "noqa", "n", "why",
+            # A bare annotation is how a quoted sentence sneaks past the parser. This exact line
+            # was a live false positive against evals/scenarios/09_collateral/grade.py.
+            'ponytail: "One guard in the shared function is a smaller diff than a guard in each"',
+            "Note: the caller already holds the lock",
+            "Invariant: every kept experiment is a commit",
         ]
         for body in prose:
             self.assertFalse(comments.is_commented_out_code(body), body)
 
+    def test_an_annotation_that_assigns_is_still_code(self) -> None:
+        self.assertTrue(comments.is_commented_out_code("retries: int = 3"))
+
 
 class DividerTests(unittest.TestCase):
-    def test_flags_decoration(self) -> None:
-        for body in ["=" * 40, "-------------", "### Section ###", "---- helpers ----", "****"]:
+    def test_flags_a_bare_rule(self) -> None:
+        for body in ["=" * 40, "-------------", "****", "# # # #"]:
             self.assertTrue(comments.is_divider(body), body)
 
     def test_does_not_flag_sentences_containing_dashes(self) -> None:
         for body in ["a - b is negative when b wins", "step 1 -> step 2", "--rev is optional"]:
             self.assertFalse(comments.is_divider(body), body)
+
+    def test_a_banner_with_words_is_judged_on_the_words(self) -> None:
+        """Decoration around a real section name must not fail a commit over punctuation."""
+        self.assertFalse(comments.is_divider("--- 4. regression canary: ledger row shape ---"))
+        self.assertEqual(comments.undecorate("--- 4. regression canary ---"), "4. regression canary")
+        self.assertEqual(tiers("""
+            # --- 4. regression canary: ledger row shape ---------------------------
+            rows = build_ledger(order)
+        """), [])
+
+    def test_decoration_does_not_hide_commented_out_code(self) -> None:
+        self.assertEqual([t for t in tiers("""
+            # ---- cache = {} ----
+            value = 1
+        """)], ["noise"])
 
 
 class VacuousDocstringTests(unittest.TestCase):

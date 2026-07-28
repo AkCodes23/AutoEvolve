@@ -112,6 +112,11 @@ def is_commented_out_code(body: str) -> bool:
             node = node.body[0] if node is not None and getattr(node, "body", None) else None
         if node is None:
             continue
+        # A bare annotation is where prose most often sneaks through: `# ponytail: "one guard in
+        # the shared function is a smaller diff"` parses as AnnAssign, and so does any
+        # `Label: "quoted sentence"`. Real disabled code assigns something.
+        if isinstance(node, ast.AnnAssign):
+            return node.value is not None
         if isinstance(node, CODE_NODES):
             return True
         if isinstance(node, ast.Expr) and isinstance(
@@ -121,10 +126,19 @@ def is_commented_out_code(body: str) -> bool:
 
 
 def is_divider(body: str) -> bool:
+    """True only for a bare rule. A banner with words in it is judged on those words instead.
+
+    `# --- 4. regression canary: ledger row shape ---` is decorated, but the decoration is not
+    the content: it names what the next block does, in a file with nine numbered checks. Calling
+    that noise would fail a commit over punctuation, so undecorate() strips the rules and the
+    remaining sentence goes through the same tests as any other comment.
+    """
     stripped = body.strip()
-    if len(stripped) >= 4 and all(c in DIVIDER_CHARS for c in stripped):
-        return True
-    return bool(re.match(r"^[=\-*~_#]{3,}.*[=\-*~_#]{3,}$", stripped))
+    return len(stripped) >= 4 and all(c in DIVIDER_CHARS for c in stripped)
+
+
+def undecorate(body: str) -> str:
+    return re.sub(r"[=\-*~_#]{3,}\s*$", "", re.sub(r"^[=\-*~_#]{3,}\s*", "", body.strip())).strip()
 
 
 def signature_words(node: ast.AST) -> set[str]:
@@ -186,24 +200,28 @@ def scan(path: str) -> list[tuple[int, str, str]]:
         if token.type != tokenize.COMMENT:
             continue
         row = token.start[0]
-        body = token.string.lstrip("#").strip()
+        raw = token.string.lstrip("#").strip()
+        if not raw:
+            continue
+        if is_divider(raw):
+            found.append((row, "noise", f"# {raw[:88]}  (decoration, not information)"))
+            continue
+        body = undecorate(raw)
         if not body or body.lower().startswith(KEEP_PREFIXES):
             continue
-        before = lines[row - 1][:token.start[1]].strip()
-        if is_divider(body):
-            found.append((row, "noise", f"# {body[:88]}  (decoration, not information)"))
-        elif is_commented_out_code(body):
+        if is_commented_out_code(body):
             found.append((row, "noise", f"# {body[:88]}  (commented-out code: delete it, "
                                         "git remembers)"))
-        else:
-            described = (row, before) if before else next_code_line(lines, row)
-            if described is None:
-                continue
-            content = words(body) - STOPWORDS - VERBS
-            if content and content <= words(described[1]):
-                where = "its own line" if before else f"line {described[0]}"
-                found.append((row, "candidate", f"# {body[:88]}\n        restates {where}:  "
-                                                f"{described[1][:88]}"))
+            continue
+        before = lines[row - 1][:token.start[1]].strip()
+        described = (row, before) if before else next_code_line(lines, row)
+        if described is None:
+            continue
+        content = words(body) - STOPWORDS - VERBS
+        if content and content <= words(described[1]):
+            where = "its own line" if before else f"line {described[0]}"
+            found.append((row, "candidate", f"# {body[:88]}\n        restates {where}:  "
+                                            f"{described[1][:88]}"))
     return sorted(found)
 
 
