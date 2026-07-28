@@ -87,10 +87,24 @@ The mode sets ceremony, not rigor. Correctness, validation, and security are nev
   frozen signal, and promote the winner to `HEAD`. Use when several approaches are plausible and
   you want to compare them rather than guess.
 
+## Write direct code
+
+Say it in the code, not beside it. Delete comments that restate what the line already says,
+and never commit commented-out code: the history holds it, and a commented block is a claim
+nothing verifies. A comment earns its place only by recording what the code cannot, which is
+almost always a *why*: a measured result, an alternative you tried and rejected, a caveat that
+would otherwise be rediscovered the hard way. When you feel the urge to narrate a line, rename
+something instead. Docstrings follow the same test: one that only restates the function's name
+and parameters is a maintenance cost with no reader.
+
+`scripts/comments.py` does this check for you rather than asking you to remember it. Run it on
+what you changed at step 8 and act on what it prints.
+
 ## Conventions
 
 - Mark a deliberate corner-cut with an `evolve:` comment naming the ceiling and the
   upgrade path (e.g. `# evolve: O(n^2) scan, fine < 10k rows; use a hash index above`).
+  This is a why, so it stays.
 - Non-trivial logic leaves **one** small runnable check behind; trivial one-liners need
   none.
 - Small commits are the experiment log; the current state is the best-known solution.

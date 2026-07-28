@@ -168,8 +168,23 @@ python3 scripts/callers.py                      # every symbol in your uncommitt
 python3 scripts/callers.py --paths src/api.py   # or just the files you care about
 ```
 
-The general lesson generalizes past this one script: when a step of the loop keeps getting
+[`scripts/comments.py`](scripts/comments.py) applies the same idea to the direct-code guardrail.
+It reports, and never rewrites, two tiers: **noise** it can prove says nothing the code does not
+(commented-out code, a docstring assembled only from the function's own name and parameters, a
+decoration bar), and **candidates** that look like a restatement of the line they sit on. `TODO`,
+`FIXME`, tool directives, and `evolve:` markers are left alone.
+
+```bash
+python3 scripts/comments.py                     # comments in your uncommitted changes
+python3 scripts/comments.py --strict            # exit 1 on noise only, for a pre-commit hook
+```
+
+Both take `--root`, so you can run them from an AutoEvolve checkout against another repository.
+
+The general lesson generalizes past these two scripts: when a step of the loop keeps getting
 skipped, prefer converting it into something that runs over restating it more emphatically.
+Neither script is claimed to improve model output. They are claimed to remove a choice, which is
+the only lever measurement here has ever found to move.
 
 **Git is the experiment store.** HEAD is always your single best-known solution; a commit
 is a kept experiment; a targeted revert of only the experiment's known files throws one away
@@ -401,6 +416,8 @@ scripts/
   branch.py                   deep-mode population branches (evolve/*)
   run_quiet.py                run a command and summarize it, to save agent context
   callers.py                  list the call sites of every symbol you just changed
+  comments.py                 report comment noise in the code you just changed
+  test_comments.py            calibration tests, half of them false-positive guards
 .github/workflows/check.yml   runs the self-check on every push and pull request
 CONTRIBUTING.md   CHANGELOG.md   LICENSE
 ```

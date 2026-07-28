@@ -28,6 +28,13 @@ jobs:
         run: python3 evals/profile.py --selftest
       - name: Run deterministic profiler regression tests
         run: python3 -m unittest discover -s evals -p "test_*.py"
+      - name: Run the mechanism script tests
+        # Kept a separate step from the eval tests so a failure names which half broke.
+        run: python3 -m unittest discover -s scripts -p "test_*.py"
+      - name: Validate the mechanism CLIs
+        run: |
+          python3 scripts/callers.py --help
+          python3 scripts/comments.py --help
       - name: Validate installer syntax and dry run
         run: |
           sh -n install.sh

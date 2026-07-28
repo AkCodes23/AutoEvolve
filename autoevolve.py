@@ -210,6 +210,12 @@ def cmd_hooks(target: str, force: bool = False) -> int:
         "if [ -f \"scripts/build_adapters.py\" ]; then\n"
         "    \"$PY\" scripts/build_adapters.py --check || exit 1\n"
         "fi\n"
+        "# --staged reads the index in Python, so a path containing a space cannot become two\n"
+        "# arguments here. Only provable noise blocks a commit; restatement candidates are\n"
+        "# printed for you to judge and never fail.\n"
+        "if [ -f \"scripts/comments.py\" ]; then\n"
+        "    \"$PY\" scripts/comments.py --staged --strict || exit 1\n"
+        "fi\n"
         "echo '[autoevolve pre-commit] Checks passed.'\n"
         "exit 0\n"
     )

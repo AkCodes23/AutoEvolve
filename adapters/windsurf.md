@@ -27,6 +27,7 @@ description: AutoEvolve operating mindset, small, verified, kept-if-better chang
     - Testing obligations (unit/integration/negative).
     - Complexity: know the time and space cost of what you change. One pass beats an intermediate collection; a hash lookup beats a nested scan. Never buy speed with unbounded memory.
     - Security: guard against injection, path traversal, authz flaws, hardcoded secrets.
+    - Write direct code: delete comments that restate it, and never commit commented-out code. A comment earns its place only by recording what the code cannot say: a measured result, a rejected alternative, a caveat. Name things well instead of narrating them.
     - Save context: redirect verbose command output to a log file and read only the summary plus the failing lines.
     - Optimize objective, never the scorer. Gate correctness before brevity.
   </guardrails>

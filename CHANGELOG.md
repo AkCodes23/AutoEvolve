@@ -7,6 +7,45 @@ so a moving `main` never changes the mindset under you.
 
 ## [Unreleased]
 
+### Added: write direct code, and a mechanism that checks it
+- **New guardrail in `AGENTS.md`.** *Delete comments that restate the code, and never commit
+  commented-out code. A comment earns its place only by recording what the code cannot say: a
+  measured result, a rejected alternative, a caveat. Name things well instead of narrating them.*
+  Folded into the existing `<guardrails>` block rather than added as a section, and the four
+  adapters are regenerated from it.
+- **Cost, stated rather than glossed:** `AGENTS.md` goes from about **566 to 631 tokens**, +65 on
+  every turn. That increment is **untested**, like the +77 before it. No claim is made that this
+  line improves any model's output; this repository's own measurements say instruction text
+  generally does not, which is exactly why the next item exists.
+- **`scripts/comments.py`** is the mechanism, and the second one after `scripts/callers.py`: it
+  reads the comments in your changed files and prints the ones that carry nothing, rather than
+  asking an agent to remember not to write them. It reports and never rewrites, because deciding
+  whether a sentence records a why is a judgement. Two tiers, and only the first can fail a build:
+  - `noise`: commented-out code (confirmed by parsing the text after the `#` as a statement), a
+    one-line docstring whose every word already appears in the function's own name and parameters,
+    and decoration bars.
+  - `candidate`: a comment whose content words are a subset of the identifiers on the line it
+    describes. Printed for you to judge, never fatal.
+  - `TODO`, `FIXME`, `HACK`, `XXX`, tool directives (`# type:`, `# noqa`, `# pragma`) and this
+    repo's own `evolve:` markers are exempt.
+- **Calibrated against false positives, which is the failure that would matter.** A reporter that
+  flags a comment recording a measured result trains you to skim past it. Run over the twelve most
+  heavily commented modules in this repository, including the `git checkout -- .` data-loss
+  postmortem in `autoevolve.py` and the same-module blind-spot note in `callers.py`, it reports
+  **zero noise and three candidates, all three genuine restatements**. `scripts/test_comments.py`
+  pins both halves: every detector is tested on text it must flag and on text it must not, and one
+  test fails if the repository's own why-comments ever start tripping it.
+- Wired in: step 3 of `/simplify`, a "Write direct code" section in the skill, two new CI steps
+  (`scripts` unit tests and both mechanism CLIs), and `autoevolve.py hooks`, which now runs
+  `comments.py --staged --strict` so only provable noise can block a commit. `--staged` reads the
+  index inside Python, so a path containing a space cannot split into two arguments in the hook.
+- **Not added, deliberately:** no comment invariant in `scripts/check.py`, and no twelfth eval
+  scenario. Grading comment density requires inspecting source, which is the exact property every
+  scenario grader was rewritten to eliminate, and it is trivially gameable by an agent that can
+  read the ruler. Adding a scenario would also force either a re-run or a pooled score against
+  grader revision `503e54e3af3b`. Unit tests over fixtures answer "does the detector work" without
+  either problem.
+
 ### Removed (BREAKING): the second profile
 - **There is now exactly one mindset profile, `AGENTS.md`.** `adapters/_core.md` is deleted and the
   per-tool adapters are generated from `AGENTS.md` instead, so there is one place to edit the
