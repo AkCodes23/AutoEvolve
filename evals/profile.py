@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import glob
 import hashlib
 import json
 import os
@@ -105,6 +106,24 @@ _SCORER = (
     "    results = [[n, bool(ok)] for n, ok, _ in m.checks()]\n"
     "print(json.dumps(results))\n"
 )
+
+
+def grader_revision() -> str:
+    """A fingerprint of every scenario grader, recorded on each row.
+
+    Scores produced by different graders must never be pooled, and this repository has had to
+    void whole result sets over exactly that. Until now the revision lived only in prose and in
+    some filenames, so `directcode_cost.jsonl` shipped with no machine-readable way to tell which
+    ruler produced it. A number a program cannot check is a number someone will eventually pool.
+    """
+    digest = hashlib.sha256()
+    for path in sorted(glob.glob(os.path.join(SCEN, "*", "grade.py"))):
+        with open(path, "rb") as handle:
+            digest.update(handle.read())
+    return digest.hexdigest()[:12]
+
+
+GRADER_REVISION = grader_revision()
 
 
 def read_text(rel_path: str) -> str:
@@ -489,6 +508,7 @@ def main() -> int:
                     outcome = "pass"
         row = {
             "model": model, "scenario": scenario, "condition": cond, "trial": trial,
+            "grader_revision": GRADER_REVISION,
             "outcome": outcome, "prompt_tokens": tokens, "error": error,
             "checks_passed": passed_checks, "checks_total": checks_total,
             # The graded source is kept so a grader fix does not cost another paid inference
