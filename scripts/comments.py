@@ -1,52 +1,27 @@
 #!/usr/bin/env python3
-"""Report the comment noise in the code you just changed.
+"""Report the comment noise in the code you just changed. Reports, never rewrites.
 
-    python scripts/comments.py                      # comments in your uncommitted changes
-    python scripts/comments.py --paths src/api.py   # specific files
-    python scripts/comments.py --rev HEAD~3         # comments changed since a revision
-    python scripts/comments.py --strict             # exit 1 when noise is found (for a hook)
+    python3 scripts/comments.py                     # your uncommitted changes
+    python3 scripts/comments.py --paths src/api.py
+    python3 scripts/comments.py --staged --strict   # for a pre-commit hook
 
-WHY THIS EXISTS. The mindset asks for direct code: a comment earns its place only by recording
-what the code cannot say, and one that restates the line below it is a second copy of the truth
-that nothing keeps in sync. Asking an agent for that is cheap and, on this repository's own
-measurements, does nothing: across roughly 580 graded trials, more instruction text produced no
-detectable change in behaviour. So this does the reading instead of requesting it, the way
-scripts/callers.py does, and puts the specific lines in front of you.
+Two tiers. `noise` is provable and can fail `--strict`: commented-out code (the text after the
+`#` parses as a statement), a one-line docstring built only from the signature, a bare rule of
+punctuation. `candidate` is advisory and never fails: a comment whose words are already in the
+line it describes, or one narrating the change rather than the code. TODO, FIXME, tool
+directives and `evolve:` markers are exempt.
 
-It reports and never rewrites, because deleting a comment is a judgement about whether the
-sentence carries a why, and that judgement is yours. Two tiers are printed:
+`--staged` implies `--baseline HEAD`, so only findings your change introduced can fail. Without
+that, adopting this in an existing repository fails commits over comments you did not write.
 
-    noise      a comment that provably says nothing the code does not (commented-out code,
-               a docstring built only from the signature, a bare rule of punctuation).
-               --strict fails on these alone.
-    candidate  a comment whose words are already in the line it describes, whether that is the
-               next line or its own. Advisory: read it and decide, it never fails --strict.
+WHY A SCRIPT AND NOT A RULE: across ~580 graded trials, more instruction text produced no
+detectable change in behaviour. This does the reading instead of asking for it.
 
-TODO, FIXME, HACK, XXX, tool directives (`# type:`, `# noqa`) and the repo's own `evolve:`
-markers are left alone: they are work markers, not descriptions.
-
-Python only. Deciding whether a comment holds a statement needs a parser, and the standard
-library ships one for this language and no other.
-
-MEASURED ACCURACY, and the limits that come with it. Measured on code nobody here wrote, since
-the first calibration used twelve files by one author and shared every habit with the tool.
-Noise per KLOC, via `scripts/corpus_audit.py`:
-
-    stdlib 0.57 | jinja2 0.49 | pip 0.30 | setuptools 0.30 | numpy 0.26 | urllib3 0.17
-    | click 0.00 | requests 0.47                            (626k lines, 8 corpora)
-
-Two hand audits of 30 random stdlib findings drove every detector here. The residual known
-errors, all found that way and all left in deliberately:
-
-  * A banner block (`# ====` / `# Section` / `# ====`) is NOT reported, because the same shape
-    is an ASCII table in dataclasses.py, and a missed banner costs less than deleting a drawn
-    table. Bare rules with nothing between them are still caught.
-  * A block of assignments used as illustration, like traceback.py's `# text = "   foo\\n"`
-    above the code computing it, reads as disabled code. One case in 282k lines.
-  * A docstring is compared to the signature after removing stopwords only, not verbs, so
-    'Get the json charset.' on `json_charset(headers)` is missed. Subtracting verbs too was
-    measured: it adds 26 findings on the stdlib, concentrated in the one detector whose audit
-    produced the most arguable calls, so the miss is the cheaper error.
+Measured over 8 corpora and 626k lines: 0.00 to 0.57 noise per KLOC. Reproduce with
+`scripts/corpus_audit.py --sample 30`. Python only; deciding whether a comment holds a statement
+needs a parser. Known misses, each left in deliberately after an audit: a banner block (the same
+shape is an ASCII table), assignments used as illustration, and a docstring whose only extra word
+is a verb (subtracting verbs added 26 arguable findings).
 """
 from __future__ import annotations
 
