@@ -179,7 +179,20 @@ python3 scripts/comments.py                     # comments in your uncommitted c
 python3 scripts/comments.py --strict            # exit 1 on noise only, for a pre-commit hook
 ```
 
-Both take `--root`, so you can run them from an AutoEvolve checkout against another repository.
+[`scripts/ruler.py`](scripts/ruler.py) is the third, and it guards the rule stated in the most
+places and enforced in none: *optimize the objective, never the scorer*. It reads what
+`DIRECTION.md` declares as your signal, and reports what your change did to it: a test that is
+gone, a `skip` that was not there before, a surviving test that lost assertions or changed what it
+expects. It is **report-only, with no `--strict` and no place in the hook**, because none of this
+is provable: a changed expectation is equally a bug fix, and adding tests is the commonest honest
+reason to touch a test file.
+
+```bash
+python3 scripts/ruler.py                        # what your uncommitted work did to the tests
+python3 scripts/ruler.py --rev HEAD~3
+```
+
+All three take `--root`, so you can run them from an AutoEvolve checkout against another repository.
 `comments.py --staged` also implies `--baseline HEAD`, so adopting the hook in a repository that
 already contains comment noise does not fail your commits over someone else's old comment.
 
@@ -435,8 +448,11 @@ scripts/
   callers.py                  list the call sites of every symbol you just changed
   comments.py                 report comment noise in the code you just changed
   corpus_audit.py             measure comments.py against a corpus nobody here wrote
+  ruler.py                    report what your change did to the tests that judge it
+  ruler_audit.py              measure ruler.py against real human commits
   test_callers.py             calibration tests for callers.py
   test_comments.py            calibration tests, half of them false-positive guards
+  test_ruler.py               calibration tests for ruler.py
 .github/workflows/check.yml   runs the self-check on every push and pull request
 CONTRIBUTING.md   CHANGELOG.md   LICENSE
 ```

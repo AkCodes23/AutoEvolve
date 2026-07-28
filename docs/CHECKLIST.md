@@ -41,6 +41,8 @@ task. It expands the loop in [`../AGENTS.md`](../AGENTS.md) into a tickable list
 - [ ] If timed, use a fixed equal budget (excluding warm-up); read back only the
       metric/status line rather than the whole log.
 - [ ] Read the actual stderr / expected-vs-actual before deciding anything.
+- [ ] Confirm you did not move the goalposts: `python3 scripts/ruler.py` reports what your
+      change did to the tests that judge it. A green suite you edited is not evidence.
 - [ ] Track multiple qualities (correctness, speed, memory, size, readability), not one.
 
 ## Keep or revert
