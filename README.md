@@ -184,10 +184,15 @@ Both take `--root`, so you can run them from an AutoEvolve checkout against anot
 already contains comment noise does not fail your commits over someone else's old comment.
 
 Its accuracy is measured against code nobody here wrote, because the first calibration used
-twelve files by one author and that is no evidence at all. Over the Python standard library, 551
-files and 282k lines, it reports **0.57 noise and 1.05 candidates per KLOC**. Two hand audits of
-30 random findings drove every detector in it, and the known remaining errors are listed in the
-module's own docstring. Reproduce it, and audit a fresh sample, with:
+twelve files by one author and that is no evidence at all. Across **eight corpora and 626k
+lines**, it reports between **0.00 and 0.57 noise findings per KLOC**:
+
+| stdlib | jinja2 | requests | pip | setuptools | numpy | urllib3 | click |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.57 | 0.49 | 0.47 | 0.30 | 0.30 | 0.26 | 0.17 | 0.00 |
+
+Two hand audits of 30 random findings drove every detector in it, and the known remaining errors
+are listed in the module's own docstring. Reproduce it, and audit a fresh sample, with:
 
 ```bash
 python3 scripts/corpus_audit.py --sample 30
