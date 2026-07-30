@@ -318,12 +318,29 @@ def new_findings(path: str, baseline_source: str | None) -> list[tuple[int, str,
     return fresh
 
 
-def scan(path: str) -> list[tuple[int, str, str]]:
-    """Every finding in one file as (line, tier, message), ordered by line."""
+def read_source(path: str) -> str | None:
+    """Decode a Python file the way Python itself would, or None when it cannot be read.
+
+    Reading source as UTF-8 is wrong, not merely strict: PEP 263 lets a file declare another
+    encoding in a coding cookie, and a BOM can select UTF-16. Both are importable Python that
+    this tool used to skip. `tokenize.open` is the standard library's own implementation of that
+    detection, so anything the interpreter accepts is readable here.
+    """
     try:
-        with open(path, encoding="utf-8") as handle:
-            source = handle.read()
-    except (OSError, UnicodeDecodeError):
+        with tokenize.open(path) as handle:
+            return handle.read()
+    except (OSError, UnicodeDecodeError, SyntaxError, ValueError, LookupError):
+        return None
+
+
+def scan(path: str) -> list[tuple[int, str, str]]:
+    """Every finding in one file as (line, tier, message), ordered by line.
+
+    An unreadable file yields no findings, which callers must not confuse with a clean one.
+    `main` checks readability itself for that reason.
+    """
+    source = read_source(path)
+    if source is None:
         return []
     return scan_source(source, path)
 
@@ -499,9 +516,15 @@ def main() -> int:
         return 0
 
     noise = candidates = hidden = 0
+    unreadable: list[str] = []
     for target in sorted(targets):
         full = target if os.path.isabs(target) else os.path.join(root, target)
         rel = os.path.relpath(full, root).replace(os.sep, "/")
+        # Checked here rather than inferred from an empty result, because "nothing to report"
+        # and "never opened it" produce the same empty list and only one of them is good news.
+        if read_source(full) is None:
+            unreadable.append(rel)
+            continue
         prior_source = file_at_rev(root, rel, baseline) if baseline else None
         findings = new_findings(full, prior_source)
         hidden += len(scan(full)) - len(findings)
@@ -519,17 +542,28 @@ def main() -> int:
         noise += sum(1 for f in findings if f[1] == "noise")
         candidates += sum(1 for f in findings if f[1] == "candidate")
 
+    if unreadable:
+        # Under --strict this is a gate, and a gate that cannot open a file has not cleared it.
+        # Passing here would be the worst kind of green: silent, and on exactly the files most
+        # likely to be odd. Without --strict it is a report, so it only has to say so.
+        print(f"{len(unreadable)} file(s) could not be decoded and were not examined:")
+        for rel in unreadable:
+            print(f"    {rel}")
+        print("Python reads these; this tool could not. Check the encoding declaration.\n")
+
     carried = (f" ({hidden} pre-existing finding(s) not introduced by this change are hidden; "
                f"re-run without --baseline to see them)" if hidden else "")
     if not noise and not candidates:
-        print(f"No comment noise found in {len(targets)} file(s).{carried}")
-        return 0
+        examined = len(targets) - len(unreadable)
+        print(f"No comment noise found in {examined} file(s).{carried}")
+        return 1 if args.strict and unreadable else 0
 
-    print(f"{noise} noise, {candidates} candidate across {len(targets)} file(s).{carried}")
+    print(f"{noise} noise, {candidates} candidate across "
+          f"{len(targets) - len(unreadable)} file(s).{carried}")
     print("Delete the noise. For each candidate, keep the comment only if it records something")
     print("the code cannot: a measured result, a rejected alternative, a caveat. If it just")
     print("narrates the line below, the better fix is usually a clearer name.")
-    return 1 if args.strict and noise else 0
+    return 1 if args.strict and (noise or unreadable) else 0
 
 
 if __name__ == "__main__":

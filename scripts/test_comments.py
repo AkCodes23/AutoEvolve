@@ -82,6 +82,69 @@ class CommentedOutCodeTests(unittest.TestCase):
         self.assertTrue(comments.is_commented_out_code("cache = {}", trailing=True))
 
 
+class EncodingTests(unittest.TestCase):
+    """Source is not always UTF-8, and `--strict` is a commit gate.
+
+    Reading with a hardcoded UTF-8 codec made every non-UTF-8 file return zero findings, which
+    the gate could not tell apart from a clean one, so commented-out code in a latin-1 file
+    committed cleanly. PEP 263 makes those files ordinary Python, not corrupt input.
+    """
+
+    NOISE = "    # result = compute(value, 2)\n"
+
+    def _file(self, name: str, data: bytes) -> str:
+        import tempfile
+        root = tempfile.mkdtemp()
+        path = os.path.join(root, name)
+        with open(path, "wb") as handle:
+            handle.write(data)
+        return path
+
+    def _strict_exit(self, path: str) -> int:
+        import contextlib
+        import io
+        argv = sys.argv
+        sys.argv = ["comments.py", "--root", os.path.dirname(path), "--paths", path, "--strict"]
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                return comments.main()
+        finally:
+            sys.argv = argv
+
+    def test_a_coding_cookie_is_honoured(self) -> None:
+        body = ("# -*- coding: latin-1 -*-\ndef f(value):  # caf\xe9\n" + self.NOISE
+                + "    return 1\n")
+        path = self._file("cookie.py", body.encode("latin-1"))
+        self.assertTrue(comments.scan(path), "latin-1 source was skipped entirely")
+        self.assertEqual(self._strict_exit(path), 1)
+
+    def test_a_utf8_bom_does_not_hide_the_file(self) -> None:
+        body = "def f(value):\n" + self.NOISE + "    return 1\n"
+        path = self._file("bom.py", b"\xef\xbb\xbf" + body.encode("utf-8"))
+        self.assertTrue(comments.scan(path), "BOM-marked source was skipped entirely")
+        self.assertEqual(self._strict_exit(path), 1)
+
+    def test_an_undecodable_file_fails_the_gate_rather_than_passing_it(self) -> None:
+        # A gate that cannot open a file has not cleared it. Silence here would be green on
+        # exactly the files most likely to be unusual.
+        for name, data in (("garbage.py", b"def f():\n    # \xff\xfe\xff\n    return 1\n"),
+                           ("badcookie.py", b"# -*- coding: nonesuch-42 -*-\nx = 1\n")):
+            path = self._file(name, data)
+            self.assertIsNone(comments.read_source(path), name)
+            self.assertEqual(self._strict_exit(path), 1, name)
+
+    def test_ordinary_utf8_is_unaffected(self) -> None:
+        body = "def f(value):\n" + self.NOISE + "    return 1\n"
+        path = self._file("plain.py", body.encode("utf-8"))
+        self.assertIsNotNone(comments.read_source(path))
+        self.assertTrue(comments.scan(path))
+        self.assertEqual(self._strict_exit(path), 1)
+
+    def test_a_clean_readable_file_still_passes_the_gate(self) -> None:
+        path = self._file("clean.py", b"def f(value):\n    return value + 1\n")
+        self.assertEqual(self._strict_exit(path), 0)
+
+
 class ParseFilterTests(unittest.TestCase):
     """The pre-filter decides what never reaches the parser, so it may only ever be too lenient.
 
