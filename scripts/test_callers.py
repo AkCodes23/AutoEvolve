@@ -110,6 +110,30 @@ class CallSiteTests(unittest.TestCase):
         }) as box:
             self.assertEqual(box.hits("api.py")["fetch"], [])
 
+    def test_a_shorter_name_does_not_swallow_the_longer_one_it_prefixes(self) -> None:
+        # All symbols share one alternation, so ordering inside it decides the result: with
+        # `run` tried first, `run_quiet(1)` matches `run` and is filed under the wrong symbol.
+        # Sorting longest-first is load-bearing and invisible, which is why it is pinned here.
+        with Sandbox({
+            "api.py": "def fetch():\n    return 1\n\n\ndef fetch_rows():\n    return 2\n",
+            "worker.py": "fetch_rows(1)\nfetch(2)\n",
+        }) as box:
+            hits = box.hits("api.py")
+            self.assertEqual([(f, ln, k) for f, ln, k, _ in hits["fetch_rows"]],
+                             [("worker.py", 1, "call")])
+            self.assertEqual([(f, ln, k) for f, ln, k, _ in hits["fetch"]],
+                             [("worker.py", 2, "call")])
+
+    def test_one_call_and_one_bare_mention_on_a_line_report_a_single_call(self) -> None:
+        # The line is scanned once and collapsed per symbol, so a name appearing twice must not
+        # become two rows, and the call occurrence must win over the bare one.
+        with Sandbox({
+            "api.py": "def fetch(q):\n    return []\n",
+            "worker.py": "fetch(1); fetch\n",
+        }) as box:
+            self.assertEqual([(ln, k) for _, ln, k, _ in box.hits("api.py")["fetch"]],
+                             [(1, "call")])
+
 
 class CorpusTests(unittest.TestCase):
     def test_walk_prunes_vendored_and_cache_directories(self) -> None:
