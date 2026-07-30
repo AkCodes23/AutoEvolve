@@ -67,6 +67,36 @@ class HookInstallTests(unittest.TestCase):
         git(["init", "-q", "."], tmp)
         return tmp
 
+    def _hook_body(self) -> str:
+        root = self._repo()
+        autoevolve.cmd_hooks(root)
+        with open(os.path.join(root, ".git", "hooks", "pre-commit"), encoding="utf-8") as handle:
+            return handle.read()
+
+    def test_the_hook_can_find_the_scripts_from_another_repository(self) -> None:
+        """Every check was guarded on `scripts/x.py` relative to the target repository.
+
+        That path exists only inside AutoEvolve itself, so in the repositories this is meant to
+        be installed into, all the guards failed, nothing ran, and the hook printed
+        "Checks passed" anyway. A gate that certifies a commit it never looked at is worse than
+        no gate, because it is why the author stopped looking.
+        """
+        body = self._hook_body()
+        self.assertIn(f'AUTOEVOLVE_HOME="{ROOT.replace(os.sep, "/")}"', body)
+        self.assertIn('"$AUTOEVOLVE_HOME/scripts/comments.py"', body)
+
+    def test_the_hook_never_claims_a_pass_it_did_not_earn(self) -> None:
+        body = self._hook_body()
+        self.assertNotIn("Checks passed", body)
+        self.assertIn("NO CHECKS RAN", body)
+        # The count is what makes the claim checkable by whoever reads the commit output.
+        self.assertIn("check(s) passed", body)
+
+    def test_autoevolve_only_invariants_stay_scoped_to_autoevolve(self) -> None:
+        """check.py and build_adapters.py describe this repository, not the user's."""
+        body = self._hook_body()
+        self.assertIn('[ -f "scripts/check.py" ] && [ -f "AGENTS.md" ] && [ -d "adapters" ]', body)
+
     def test_a_working_install_reports_success(self) -> None:
         root = self._repo()
         self.assertEqual(autoevolve.cmd_hooks(root), 0)
