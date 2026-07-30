@@ -53,6 +53,19 @@ def git(args: list[str], cwd: str) -> tuple[int, str]:
     return res.returncode, res.stdout or ""
 
 
+def unresolvable_rev(root: str, rev: str | None) -> bool:
+    """True when git cannot resolve `rev`, so a diff against it would mean nothing.
+
+    A revision git rejects and a revision with nothing changed both yield an empty diff, and only
+    one of them is good news. `--rev HEAD~5` in a repository with three commits is the everyday
+    way to hit this, a typo the other, and both used to report a clean tree.
+    """
+    if rev is None:
+        return False
+    code, _ = git(["rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"], root)
+    return code != 0
+
+
 def changed_files(root: str, rev: str | None, suffix: str | None = ".py") -> list[str]:
     """Files changed versus a revision, or the current uncommitted work if no revision.
 
@@ -62,9 +75,11 @@ def changed_files(root: str, rev: str | None, suffix: str | None = ".py") -> lis
     """
     args = ["diff", "--name-only", rev] if rev else ["diff", "--name-only", "HEAD"]
     code, out = git(args, root)
-    if code != 0:
-        return []
-    files = set(out.split())
+    # Returning early here treated a failed diff as an unchanged tree. With no revision given
+    # that diff is against HEAD, which does not exist before the first commit, so every tool
+    # went blind in exactly the repository someone has just run `git init` in to try this out.
+    # The staged and untracked work collected below is the whole content of such a repository.
+    files = set(out.split()) if code == 0 else set()
     if not rev:  # include staged and freshly added work
         for extra in (["diff", "--name-only", "--cached"], ["ls-files", "--others", "--exclude-standard"]):
             code, out = git(extra, root)
@@ -186,6 +201,11 @@ def main() -> int:
     args = parser.parse_args()
 
     root = os.path.abspath(args.root)
+    if unresolvable_rev(root, args.rev):
+        print(f"Error: git cannot resolve revision '{args.rev}', so there is nothing to compare "
+              "against. Reporting no changed files here would read as a clean tree.",
+              file=sys.stderr)
+        return 66
     targets = args.paths if args.paths else changed_files(root, args.rev)
     if not targets:
         print("No changed Python files found. Pass --paths explicitly, or check --rev.")

@@ -37,7 +37,7 @@ import tokenize
 import warnings
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from callers import changed_files, git, read_source  # noqa: E402
+from callers import changed_files, git, read_source, unresolvable_rev  # noqa: E402
 
 # `pyright: reportUnusedImport=false` parses as an assignment, so a directive that is not in
 # this list gets reported as commented-out code. Found on the first real repository this was
@@ -492,6 +492,15 @@ def main() -> int:
             stream.reconfigure(errors="replace")
 
     root = os.path.abspath(args.root)
+    # Only what the user typed. `--staged` implies a HEAD baseline further down, and HEAD does
+    # not resolve in a repository whose first commit has not landed yet, which is a legitimate
+    # thing to run this on.
+    for flag, candidate in (("--rev", args.rev), ("--baseline", args.baseline)):
+        if candidate and unresolvable_rev(root, candidate):
+            print(f"Error: git cannot resolve {flag} '{candidate}'. Reporting no findings "
+                  "against a revision that does not exist would read as a clean file.",
+                  file=sys.stderr)
+            return 66
     targets = python_targets(root, args.paths, args.rev, args.staged)
     baseline = args.baseline
     if baseline is None and args.staged:

@@ -135,6 +135,64 @@ class CallSiteTests(unittest.TestCase):
                              [(1, "call")])
 
 
+class RevisionTests(unittest.TestCase):
+    """A revision git cannot resolve produced an empty diff, which read as a clean tree.
+
+    `--rev HEAD~5` in a repository with three commits is the everyday way to hit this, and a
+    typo the other. All three tools reported all clear and exited 0 on both.
+    """
+
+    def _repo(self, commits: int = 1) -> str:
+        import subprocess
+        root = tempfile.mkdtemp()
+        run = lambda *a: subprocess.run(["git", "-C", root, *a], capture_output=True)
+        run("init", "-q", ".")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        for i in range(commits):
+            with open(os.path.join(root, f"m{i}.py"), "w", encoding="utf-8") as handle:
+                handle.write(f"def f{i}():\n    return {i}\n")
+            run("add", "-A")
+            run("commit", "-qm", f"c{i}")
+        return root
+
+    def test_a_resolvable_revision_is_accepted(self) -> None:
+        root = self._repo(commits=2)
+        self.assertFalse(callers.unresolvable_rev(root, "HEAD"))
+        self.assertFalse(callers.unresolvable_rev(root, "HEAD~1"))
+        self.assertFalse(callers.unresolvable_rev(root, None))
+
+    def test_a_typo_and_a_too_deep_revision_are_both_refused(self) -> None:
+        root = self._repo(commits=2)
+        for rev in ("HEDA~3", "HEAD~5", "no-such-branch", ""):
+            self.assertTrue(callers.unresolvable_rev(root, rev), rev)
+
+    def test_every_tool_refuses_rather_than_reporting_a_clean_tree(self) -> None:
+        import subprocess
+        root = self._repo(commits=1)
+        here = os.path.dirname(os.path.abspath(__file__))
+        for tool in ("callers.py", "comments.py", "ruler.py"):
+            result = subprocess.run(
+                [sys.executable, os.path.join(here, tool), "--root", root, "--rev", "HEAD~9"],
+                capture_output=True, text=True)
+            self.assertEqual(result.returncode, 66, f"{tool}: {result.stdout}{result.stderr}")
+            self.assertIn("cannot resolve", result.stderr, tool)
+
+    def test_work_is_visible_before_the_first_commit_exists(self) -> None:
+        """`git diff HEAD` fails when HEAD does not exist, which used to mean "nothing changed".
+
+        That is the state of a repository someone has just run `git init` in to try this out,
+        so every tool was blind in exactly the case a new user meets first.
+        """
+        import subprocess
+        root = tempfile.mkdtemp()
+        subprocess.run(["git", "-C", root, "init", "-q", "."], capture_output=True)
+        with open(os.path.join(root, "lib.py"), "w", encoding="utf-8") as handle:
+            handle.write("def fetch_rows(q):\n    return []\n")
+        subprocess.run(["git", "-C", root, "add", "-A"], capture_output=True)
+        self.assertEqual(callers.changed_files(root, None), ["lib.py"])
+
+
 class EncodingTests(unittest.TestCase):
     """Source is not always UTF-8, and reading it as UTF-8 raised rather than degrading.
 

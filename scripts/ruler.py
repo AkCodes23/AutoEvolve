@@ -13,7 +13,9 @@ What is frozen comes from `DIRECTION.md`, the human-owned declaration of the sig
 the whole ruler, or a new skip marker. `review` is a surviving test that lost assertions or
 changed what it expects.
 
-REPORT ONLY: no `--strict`, not in the hook, always exits 0, and a test keeps it that way. Unlike
+REPORT ONLY: no `--strict`, not in the hook, and findings never change the exit code, which a
+test keeps that way. A revision git cannot resolve still exits 66, because that is a command
+that could not run rather than a judgement about your tests. Unlike
 `comments.py` nothing here is provable. A changed expectation is equally a bug fix, and adding
 tests is the commonest honest reason to touch a test file, so a gate would block real work.
 
@@ -31,7 +33,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from callers import changed_files, git  # noqa: E402
+from callers import changed_files, git, unresolvable_rev  # noqa: E402
 from comments import file_at_rev, quietly_parse  # noqa: E402
 
 SKIP_MARKERS = ("skip", "skipif", "skipunless", "xfail", "expectedfailure", "disabled", "ignore")
@@ -192,6 +194,11 @@ def main() -> int:
     args = parser.parse_args()
 
     root = os.path.abspath(args.root)
+    if unresolvable_rev(root, args.rev):
+        print(f"Error: git cannot resolve revision '{args.rev}', so there is no baseline to "
+              "compare the ruler against. Saying the signal is unchanged would be a guess.",
+              file=sys.stderr)
+        return 66
     declared = signal_paths(root)
     targets = args.paths if args.paths else changed_files(
         root, args.rev if args.rev != "HEAD" else None, suffix=None)
