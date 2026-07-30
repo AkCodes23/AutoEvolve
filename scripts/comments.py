@@ -37,7 +37,7 @@ import tokenize
 import warnings
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from callers import changed_files, git  # noqa: E402
+from callers import changed_files, git, read_source  # noqa: E402
 
 # `pyright: reportUnusedImport=false` parses as an assignment, so a directive that is not in
 # this list gets reported as commented-out code. Found on the first real repository this was
@@ -316,21 +316,6 @@ def new_findings(path: str, baseline_source: str | None) -> list[tuple[int, str,
         else:
             fresh.append((line, tier, message))
     return fresh
-
-
-def read_source(path: str) -> str | None:
-    """Decode a Python file the way Python itself would, or None when it cannot be read.
-
-    Reading source as UTF-8 is wrong, not merely strict: PEP 263 lets a file declare another
-    encoding in a coding cookie, and a BOM can select UTF-16. Both are importable Python that
-    this tool used to skip. `tokenize.open` is the standard library's own implementation of that
-    detection, so anything the interpreter accepts is readable here.
-    """
-    try:
-        with tokenize.open(path) as handle:
-            return handle.read()
-    except (OSError, UnicodeDecodeError, SyntaxError, ValueError, LookupError):
-        return None
 
 
 def scan(path: str) -> list[tuple[int, str, str]]:

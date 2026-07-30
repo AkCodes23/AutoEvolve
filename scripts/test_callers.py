@@ -135,6 +135,44 @@ class CallSiteTests(unittest.TestCase):
                              [(1, "call")])
 
 
+class EncodingTests(unittest.TestCase):
+    """Source is not always UTF-8, and reading it as UTF-8 raised rather than degrading.
+
+    `UnicodeDecodeError` subclasses `ValueError`, so `except (OSError, SyntaxError)` never caught
+    it and the whole tool died on a traceback. CPython's own tree carries two such files,
+    `test/encoded_modules/module_iso_8859_1.py` and `module_koi8_r.py`, and either was enough.
+    PEP 263 makes them ordinary Python, not corrupt input.
+    """
+
+    def _write(self, name: str, data: bytes) -> str:
+        root = tempfile.mkdtemp()
+        path = os.path.join(root, name)
+        with open(path, "wb") as handle:
+            handle.write(data)
+        return path
+
+    def test_a_coding_cookie_module_yields_its_symbols(self) -> None:
+        body = ("# -*- coding: latin-1 -*-\ndef fetch_rows(q):  # caf\xe9\n    return []\n")
+        path = self._write("lib.py", body.encode("latin-1"))
+        self.assertEqual(callers.defined_symbols(path), [("fetch_rows", 2)])
+
+    def test_an_undecodable_file_degrades_instead_of_raising(self) -> None:
+        for name, data in (("bad.py", b"def f():\n    # \xff\xfe\xff\n    return 1\n"),
+                           ("cookie.py", b"# -*- coding: nonesuch-42 -*-\ndef f():\n    pass\n")):
+            path = self._write(name, data)
+            self.assertIsNone(callers.read_source(path), name)
+            self.assertEqual(callers.defined_symbols(path), [], name)
+
+    def test_a_syntax_error_is_still_distinct_from_an_encoding_failure(self) -> None:
+        path = self._write("broken.py", b"def f(:\n    pass\n")
+        self.assertIsNotNone(callers.read_source(path))   # it decoded fine
+        self.assertEqual(callers.defined_symbols(path), [])
+
+    def test_comments_shares_this_reader_rather_than_keeping_its_own(self) -> None:
+        import comments
+        self.assertIs(comments.read_source, callers.read_source)
+
+
 class CorpusTests(unittest.TestCase):
     def test_walk_prunes_vendored_and_cache_directories(self) -> None:
         with Sandbox({

@@ -28,6 +28,7 @@ import os
 import re
 import subprocess
 import sys
+import tokenize
 
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache",
              ".venv", "venv", ".mypy_cache", ".tox", "site-packages", "build", "dist"}
@@ -72,12 +73,32 @@ def changed_files(root: str, rev: str | None, suffix: str | None = ".py") -> lis
     return sorted(f for f in files if suffix is None or f.endswith(suffix))
 
 
+def read_source(path: str) -> str | None:
+    """Decode a Python file the way Python itself would, or None when it cannot be read.
+
+    Reading source as UTF-8 is wrong, not merely strict: PEP 263 lets a file declare another
+    encoding in a coding cookie, and a BOM can select UTF-16. Both are importable Python.
+    `tokenize.open` is the standard library's own implementation of that detection, so anything
+    the interpreter accepts is readable here.
+
+    This lives in the lowest module of the three so `comments.py`, which already imports from
+    here, can share it without the dependency pointing back.
+    """
+    try:
+        with tokenize.open(path) as handle:
+            return handle.read()
+    except (OSError, UnicodeDecodeError, SyntaxError, ValueError, LookupError):
+        return None
+
+
 def defined_symbols(path: str) -> list[tuple[str, int]]:
     """Top-level functions and classes, plus public methods, defined in one file."""
+    source = read_source(path)
+    if source is None:
+        return []
     try:
-        with open(path, encoding="utf-8") as handle:
-            tree = ast.parse(handle.read(), filename=path)
-    except (OSError, SyntaxError):
+        tree = ast.parse(source, filename=path)
+    except (SyntaxError, ValueError):
         return []
     found = []
     for node in tree.body:
@@ -171,13 +192,27 @@ def main() -> int:
         return 0
 
     symbols: dict = {}
+    unreadable: list[str] = []
     for rel in targets:
         full = rel if os.path.isabs(rel) else os.path.join(root, rel)
         norm = os.path.relpath(full, root).replace(os.sep, "/")
+        # "Defines nothing" and "could not be opened" are the same empty list, and this tool
+        # exists to say which call sites you must check. Reporting none of them because a file
+        # would not decode is the failure it is meant to prevent.
+        if read_source(full) is None:
+            unreadable.append(norm)
+            continue
         for name, line in defined_symbols(full):
             symbols[name] = {"file": norm, "line": line}
+    if unreadable:
+        print(f"{len(unreadable)} file(s) could not be decoded, so nothing was read from them:")
+        for norm in unreadable:
+            print(f"    {norm}")
+        print("Python reads these; this tool could not. Check the encoding declaration.\n")
     if not symbols:
-        print(f"No top-level functions or classes found in: {', '.join(targets)}")
+        readable = [t for t in targets if t not in unreadable]
+        if readable:
+            print(f"No top-level functions or classes found in: {', '.join(readable)}")
         return 0
 
     hits = find_callers(root, symbols, python_files(root))
