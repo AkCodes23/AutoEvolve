@@ -82,6 +82,41 @@ class CommentedOutCodeTests(unittest.TestCase):
         self.assertTrue(comments.is_commented_out_code("cache = {}", trailing=True))
 
 
+class ParseFilterTests(unittest.TestCase):
+    """The pre-filter decides what never reaches the parser, so it may only ever be too lenient.
+
+    Being too strict is silent: the finding simply stops appearing, and no test that only checks
+    known-bad comments would notice. These pin the direction of the allowed error.
+    """
+
+    def test_never_filters_anything_that_parses_as_code(self) -> None:
+        # One member per accepted syntactic form, since a missing keyword in the frozenset is
+        # exactly the edit this guards against.
+        for body in ["x = 1", "x += 1", "x: int = 1", "foo()", "obj.method(1)", "return x",
+                     "import os", "from a import b", "del x", "pass", "break", "continue",
+                     "raise ValueError", "assert x", "if x: pass", "for i in y: pass",
+                     "while x: pass", "with a: pass", "try: pass\nexcept: pass",
+                     "def f(): pass", "class C: pass", "async def f(): pass", "await thing",
+                     "yield x", "yield from g", "(y := 2)"]:
+            self.assertFalse(comments.cannot_parse_as_code(body), body)
+
+    def test_every_statement_keyword_survives_the_filter(self) -> None:
+        for word in comments.STATEMENT_KEYWORDS:
+            self.assertFalse(comments.cannot_parse_as_code(f"{word} something"), word)
+
+    def test_filters_prose_that_has_no_route_to_a_code_verdict(self) -> None:
+        for body in ["TODO", "the user name", "Note: caller holds the lock", "-x", "*args",
+                     "[1, 2]", "See build_adapters.py for the generated form"]:
+            self.assertTrue(comments.cannot_parse_as_code(body), body)
+
+    def test_filtering_never_changes_the_verdict(self) -> None:
+        """The property the speedup rests on: filtered text was always going to be False."""
+        for body in ["TODO", "the user name", "returns the user", "global state", "n", "why",
+                     "Quechua", "delete this once the migration lands", "IF X: PASS"]:
+            if comments.cannot_parse_as_code(body.strip()):
+                self.assertFalse(comments.is_commented_out_code(body), body)
+
+
 class DividerTests(unittest.TestCase):
     def test_flags_a_bare_rule(self) -> None:
         for body in ["=" * 40, "-------------", "****", "# # # #"]:

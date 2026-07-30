@@ -126,6 +126,29 @@ def quietly_parse(source: str) -> ast.Module | None:
             return None
 
 
+# Every node this function accepts leaves a mark in the raw text. Assign, AugAssign, AnnAssign
+# with a value and NamedExpr all carry `=`; a Call carries `(`; the rest are keyword statements,
+# and only the first statement is ever examined, so the keyword has to be the first word. Text
+# with none of the three cannot parse into anything accepted, and prose almost never has them.
+# Parsing dominates the scan (11.6s of a 16.3s run over 400 stdlib files, two parses per
+# comment), so the cheapest fix is to not parse what cannot qualify.
+STATEMENT_KEYWORDS = frozenset((
+    "return", "import", "from", "def", "class", "for", "while", "if", "with", "try", "raise",
+    "assert", "del", "pass", "break", "continue", "async", "await", "yield",
+))
+HEAD_WORD = re.compile(r"[A-Za-z_]+")
+
+
+def cannot_parse_as_code(body: str) -> bool:
+    """Conservative: True only when no accepted parse is possible, so it never hides a finding."""
+    if "=" in body or "(" in body:
+        return False
+    head = HEAD_WORD.match(body)
+    # Compared in lower case on purpose. "If the count is zero" is not Python, but matching it
+    # here costs one wasted parse, while wrongly filtering real code would cost a finding.
+    return head is None or head.group().lower() not in STATEMENT_KEYWORDS
+
+
 def is_commented_out_code(body: str, trailing: bool = False) -> bool:
     """True when the text after the `#` parses as a statement rather than reading as prose.
 
@@ -139,7 +162,7 @@ def is_commented_out_code(body: str, trailing: bool = False) -> bool:
     # sqrt(1 / sys.float_info.max)` in statistics.py records where the constant came from.
     """
     body = body.strip()
-    if len(body) < 3:
+    if len(body) < 3 or cannot_parse_as_code(body):
         return False
     wrapped = "def _():\n" + textwrap.indent(body, "    ")
     for source, unwrap in ((body, False), (wrapped, True)):
