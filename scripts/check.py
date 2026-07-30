@@ -166,6 +166,11 @@ def check_readme_line_count_is_current() -> None:
 
     The length is a selling point ("it is N lines"), so a wrong number is a claim the product
     does not meet. Asserting it here is cheaper than remembering to update two places.
+
+    The scan is README-wide rather than anchored to nearby "AGENTS.md" text, because one of the
+    two claims ("It is N lines") names the file only in the paragraph above it. The cost is that
+    an unrelated "N lines" in this README would false-fail; the failure is loud and the message
+    names the number, so it is cheap to spot and adjust if that day comes.
     """
     actual = len(read_lines(os.path.join(ROOT, "AGENTS.md")))
     readme = os.path.join(ROOT, "README.md")

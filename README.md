@@ -40,9 +40,14 @@ guardrails, the budget) and `JOURNAL.md` (append-only, one line per experiment).
 ## Mechanisms, not just rules
 
 This is where AutoEvolve differs from the rulesets it draws on, and the difference is measured.
-Across roughly 580 graded trials, **adding instruction text produced no detectable change in
-agent behaviour**. Agents do not fail these steps out of ignorance; they anchor on the one symptom
-in front of them. Rewording a rule cannot fix that. Removing the choice can.
+Across roughly 580 graded trials, **adding instruction text changed almost nothing about agent
+behaviour**. The one exception is scope discipline, and every ruleset earns it equally (see
+below), so it is not a reason to prefer this file over another. Treat the rest as unmoved: on
+that first suite, five of seven scenarios scored 100 percent for every condition, and a
+ceiling cannot show a difference no matter how many trials run against it, which is why
+scenarios 08 to 11 were added later. Agents do not fail these steps out of ignorance; they
+anchor on the one symptom in front of them. Rewording a rule rarely fixes that. Removing the
+choice can.
 
 So the loop's three most-skipped steps each have a script that does the work and puts the answer
 in front of you. All are standard library only, all report rather than rewrite, and all take
@@ -82,9 +87,10 @@ An independent synthesis of four sources, each contributing one layer. Full attr
 
 ## Honesty about what is proven
 
-Nothing here claims the mindset text improves model output. It was measured repeatedly and it
-does not, which is why the scripts above exist. The benchmark harness and its results are not in
-this repository; both are in git history at commit `9ac36c9` if you want to rerun them.
+Nothing here claims the mindset text reliably improves model output. It was measured repeatedly
+and, with the single exception below, it does not, which is why the scripts above exist. The
+benchmark harness and its results are not in this repository; both are in git history at commit
+`9ac36c9` if you want to rerun them.
 
 The one place any ruleset helped is worth stating precisely, because it is easy to misread as a
 win for this one. On a scope-discipline scenario (do the task asked, leave adjacent code alone)
@@ -94,7 +100,10 @@ advantage of this file. Across the other four discriminating scenarios every rul
 or below the unguided baseline: control 71 percent, AutoEvolve 68, Karpathy 63, ponytail 57.
 
 So the defensible claim is narrow: among rulesets, this one costs the least. It is not that it
-adds value over an empty prompt. Five scenarios at three trials per cell is directional only.
+adds value over an empty prompt. Those numbers come from one model (`llama-3.1-8b-instant`) at
+three trials per cell, on the five of eleven scenarios where every condition completed every
+cell; the other six had no balanced cells and pooling them would credit a condition for the
+model that happened to run it. Read the whole section as directional, not settled.
 
 ## What is in this repo
 
