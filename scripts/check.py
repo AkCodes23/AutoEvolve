@@ -161,6 +161,22 @@ def check_canonical_source_exists() -> None:
             failures.append(f"Missing required file: {required}")
 
 
+def check_readme_line_count_is_current() -> None:
+    """README states AGENTS.md's length twice. Both went stale on the first edit that changed it.
+
+    The length is a selling point ("it is N lines"), so a wrong number is a claim the product
+    does not meet. Asserting it here is cheaper than remembering to update two places.
+    """
+    actual = len(read_lines(os.path.join(ROOT, "AGENTS.md")))
+    readme = os.path.join(ROOT, "README.md")
+    claimed = re.findall(r"(\d+) lines", "\n".join(read_lines(readme)))
+    wrong = sorted({c for c in claimed if int(c) != actual})
+    if wrong:
+        failures.append(
+            f"README.md claims AGENTS.md is {', '.join(wrong)} lines; it is {actual}."
+        )
+
+
 def check_plugin_json_valid() -> None:
     # The Claude Code plugin manifests must be valid JSON or the install path breaks.
     d = os.path.join(ROOT, ".claude-plugin")
@@ -176,6 +192,7 @@ def check_plugin_json_valid() -> None:
 
 def main() -> int:
     check_canonical_source_exists()
+    check_readme_line_count_is_current()
     check_no_em_dashes()
     check_core_is_tool_neutral()
     check_links_resolve()

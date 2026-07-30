@@ -6,7 +6,7 @@ Drop [`AGENTS.md`](AGENTS.md) into a repository. Your AI assistant reads it and 
 small, verified steps: define an honest signal for "better", make the smallest correct change,
 keep it only if it measurably improves things, journal it, simplify, repeat.
 
-It is 38 lines. There is no runtime, no dependency, and nothing to build.
+It is 36 lines. There is no runtime, no dependency, and nothing to build.
 
 ## Quick start
 
@@ -86,13 +86,20 @@ Nothing here claims the mindset text improves model output. It was measured repe
 does not, which is why the scripts above exist. The benchmark harness and its results are not in
 this repository; both are in git history at commit `9ac36c9` if you want to rerun them.
 
-Nothing here claims the mindset text improves model output. It has been measured repeatedly and
-it does not, which is the honest finding and the reason the mechanisms above exist.
+The one place any ruleset helped is worth stating precisely, because it is easy to misread as a
+win for this one. On a scope-discipline scenario (do the task asked, leave adjacent code alone)
+the unguided model scored 33 percent and **ponytail, Karpathy's guidelines and AutoEvolve each
+scored 100 percent**. That is an any-preamble effect, shared equally by all three, not an
+advantage of this file. Across the other four discriminating scenarios every ruleset landed at
+or below the unguided baseline: control 71 percent, AutoEvolve 68, Karpathy 63, ponytail 57.
+
+So the defensible claim is narrow: among rulesets, this one costs the least. It is not that it
+adds value over an empty prompt. Five scenarios at three trials per cell is directional only.
 
 ## What is in this repo
 
 ```
-AGENTS.md                     the mindset (the product; 38 lines)
+AGENTS.md                     the mindset (the product; 36 lines)
 adapters/                     four per-tool copies, GENERATED from AGENTS.md
 templates/                    DIRECTION.md and JOURNAL.md to drop in a target repo
 autoevolve.py                 install / init / check / setup / journal / hooks / loop
