@@ -52,8 +52,13 @@ def git(args: list[str], cwd: str) -> tuple[int, str]:
     return res.returncode, res.stdout or ""
 
 
-def changed_files(root: str, rev: str | None) -> list[str]:
-    """Files changed versus a revision, or the current uncommitted work if no revision."""
+def changed_files(root: str, rev: str | None, suffix: str | None = ".py") -> list[str]:
+    """Files changed versus a revision, or the current uncommitted work if no revision.
+
+    `suffix` of None returns every changed path. Callers that can only read one language need
+    that to tell "nothing changed" apart from "something changed that I cannot parse", which are
+    the same empty list once the filter has run.
+    """
     args = ["diff", "--name-only", rev] if rev else ["diff", "--name-only", "HEAD"]
     code, out = git(args, root)
     if code != 0:
@@ -64,7 +69,7 @@ def changed_files(root: str, rev: str | None) -> list[str]:
             code, out = git(extra, root)
             if code == 0:
                 files.update(out.split())
-    return sorted(f for f in files if f.endswith(".py"))
+    return sorted(f for f in files if suffix is None or f.endswith(suffix))
 
 
 def defined_symbols(path: str) -> list[tuple[str, int]]:

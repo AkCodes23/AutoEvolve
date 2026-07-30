@@ -133,6 +133,84 @@ class ScopeTests(unittest.TestCase):
         self.assertEqual(ruler.signal_paths(tmp), ["tests"])
 
 
+class UnreadableRulerTests(unittest.TestCase):
+    """A ruler file this tool cannot parse must never be reported as an unchanged signal.
+
+    Before this, a TypeScript repo that deleted half its suite got "No changes to the frozen
+    signal" and exit 0, because the changed-file list was filtered to Python before anything
+    asked whether those files were part of the ruler. A silent pass is the one failure this
+    tool exists to prevent, so it is the one failure it must not commit itself.
+    """
+
+    def _repo(self, files: dict[str, str]) -> str:
+        import subprocess
+        import tempfile
+        root = tempfile.mkdtemp()
+        run = lambda *a: subprocess.run(["git", "-C", root, *a], capture_output=True)
+        run("init")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        for rel, body in files.items():
+            full = os.path.join(root, rel)
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, "w", encoding="utf-8") as handle:
+                handle.write(body)
+        run("add", "-A")
+        run("commit", "-m", "init")
+        return root
+
+    def _run(self, root: str) -> str:
+        import io
+        import contextlib
+        argv = sys.argv
+        sys.argv = ["ruler.py", "--root", root]
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                ruler.main()
+        finally:
+            sys.argv = argv
+        return out.getvalue()
+
+    def test_a_deleted_javascript_test_is_not_an_all_clear(self) -> None:
+        root = self._repo({"tests/auth.test.ts": "test('a', () => {});\ntest('b', () => {});\n"})
+        with open(os.path.join(root, "tests", "auth.test.ts"), "w", encoding="utf-8") as handle:
+            handle.write("test('a', () => {});\n")
+        text = self._run(root)
+        self.assertNotIn("No changes to the frozen signal", text)
+        self.assertIn("auth.test.ts", text)
+
+    def test_a_mixed_change_does_not_let_the_tally_cover_unread_files(self) -> None:
+        root = self._repo({
+            "tests/auth.test.ts": "test('a', () => {});\ntest('b', () => {});\n",
+            "tests/test_core.py": "def test_x():\n    assert compute(1) == 2\n"
+                                  "def test_y():\n    assert other() == 5\n",
+        })
+        for rel, body in (("tests/auth.test.ts", "test('a', () => {});\n"),
+                          ("tests/test_core.py", "def test_x():\n    assert compute(1) == 2\n")):
+            with open(os.path.join(root, rel), "w", encoding="utf-8") as handle:
+                handle.write(body)
+        text = self._run(root)
+        self.assertIn("test_y", text)                       # the Python finding still lands
+        self.assertIn("auth.test.ts", text)                 # and the unread file is named
+        self.assertIn("across the Python files only", text)
+
+    def test_a_python_only_repo_still_says_no_changes(self) -> None:
+        root = self._repo({"tests/test_core.py": "def test_x():\n    assert compute(1) == 2\n",
+                           "src/app.py": "def compute(n):\n    return n + 1\n"})
+        with open(os.path.join(root, "src", "app.py"), "w", encoding="utf-8") as handle:
+            handle.write("def compute(n):\n    return n + 2\n")
+        self.assertIn("No changes to the frozen signal", self._run(root))
+
+    def test_changed_files_can_return_every_language(self) -> None:
+        from callers import changed_files
+        root = self._repo({"a.py": "x = 1\n", "b.ts": "const x = 1;\n"})
+        with open(os.path.join(root, "b.ts"), "w", encoding="utf-8") as handle:
+            handle.write("const x = 2;\n")
+        self.assertEqual(changed_files(root, None), [])
+        self.assertEqual(changed_files(root, None, suffix=None), ["b.ts"])
+
+
 class NoGateTests(unittest.TestCase):
     def test_the_tool_has_no_strict_mode(self) -> None:
         """Deliberate. Nothing here is provable, so a gate would block honest work.

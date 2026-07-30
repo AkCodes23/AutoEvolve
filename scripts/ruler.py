@@ -193,13 +193,28 @@ def main() -> int:
 
     root = os.path.abspath(args.root)
     declared = signal_paths(root)
-    targets = args.paths if args.paths else changed_files(root, args.rev if args.rev != "HEAD"
-                                                          else None)
-    rulers = [t for t in targets if is_ruler(t, declared)]
+    targets = args.paths if args.paths else changed_files(
+        root, args.rev if args.rev != "HEAD" else None, suffix=None)
+    in_ruler = [t for t in targets if is_ruler(t, declared)]
+    # Only Python can be compared, but the ruler is whatever the human declared, so a JavaScript
+    # or Go test file is part of the signal even though nothing here can read it.
+    rulers = [t for t in in_ruler if t.endswith(".py")]
+    unreadable = [t for t in in_ruler if not t.endswith(".py")]
 
     source = (f"DIRECTION.md names {', '.join(declared)}" if declared
               else "convention (no DIRECTION.md signal names a path)")
     if not rulers:
+        # Saying "no changes to the frozen signal" here would be a false all-clear: the signal
+        # did change, in a language this tool cannot parse. That is the one sentence this tool
+        # must never print wrongly, since a silent pass is exactly what it exists to prevent.
+        if unreadable:
+            print(f"Cannot judge this change. Scope: {source}.")
+            print(f"{len(unreadable)} changed file(s) belong to the ruler but are not Python, "
+                  "so nothing here can read them:")
+            for rel in sorted(unreadable):
+                print(f"    {rel}")
+            print("Review them yourself. Absence of findings below is not evidence of anything.")
+            return 0
         others = len(targets)
         print(f"No changes to the frozen signal. Scope: {source}.")
         if others:
@@ -242,7 +257,17 @@ def main() -> int:
             print(f"    [{tier}] {message}")
         print()
 
-    print(f"{tiers['weakened']} weakened, {tiers['review']} to review.")
+    if unreadable:
+        # The counts below cover the Python files only. Printing them without this would let a
+        # clean tally stand for files that were never opened.
+        print(f"{len(unreadable)} further changed ruler file(s) are not Python and were not "
+              "examined:")
+        for rel in sorted(unreadable):
+            print(f"    {rel}")
+        print()
+
+    print(f"{tiers['weakened']} weakened, {tiers['review']} to review"
+          f"{', across the Python files only' if unreadable else ''}.")
     print("Nothing here is proof. A deleted test may be obsolete and a changed expectation may be")
     print("the fix. But the loop only means something while the ruler holds still, so the one")
     print("thing you may not do is change it in the same breath as the code and not say so.")
