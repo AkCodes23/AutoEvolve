@@ -18,6 +18,10 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLI = os.path.join(ROOT, "autoevolve.py")
 
+# Importing the CLI must not depend on the working directory the suite happens to run from.
+sys.path.insert(0, ROOT)
+import autoevolve  # noqa: E402
+
 
 def git(args: list[str], cwd: str) -> None:
     subprocess.run(["git", *args], cwd=cwd, capture_output=True, check=False)
@@ -47,6 +51,63 @@ def loop(cwd: str, *args: str) -> subprocess.CompletedProcess:
 def body(cwd: str, name: str) -> str:
     with open(os.path.join(cwd, name), encoding="utf-8") as handle:
         return handle.read()
+
+
+class HookInstallTests(unittest.TestCase):
+    """An installed hook that git will not run is worse than no hook.
+
+    Git skips a pre-commit hook without the executable bit in silence, so the commit goes
+    through unchecked while the user has been told a gate exists and has stopped watching for
+    what it was meant to catch. `os.chmod` used to be wrapped in `except Exception: pass`,
+    after which success was printed unconditionally.
+    """
+
+    def _repo(self) -> str:
+        tmp = tempfile.mkdtemp()
+        git(["init", "-q", "."], tmp)
+        return tmp
+
+    def test_a_working_install_reports_success(self) -> None:
+        root = self._repo()
+        self.assertEqual(autoevolve.cmd_hooks(root), 0)
+        hook = os.path.join(root, ".git", "hooks", "pre-commit")
+        self.assertTrue(os.path.isfile(hook))
+        self.assertTrue(os.access(hook, os.X_OK))
+
+    def test_a_hook_git_would_ignore_is_not_reported_as_installed(self) -> None:
+        root = self._repo()
+        real_access = os.access
+
+        def not_executable(path, mode, **kw):
+            if mode == os.X_OK and path.endswith("pre-commit"):
+                return False
+            return real_access(path, mode, **kw)
+
+        os.access = not_executable
+        try:
+            self.assertNotEqual(autoevolve.cmd_hooks(root), 0)
+        finally:
+            os.access = real_access
+
+    def test_a_refused_chmod_is_surfaced_rather_than_swallowed(self) -> None:
+        root = self._repo()
+        real_chmod, real_access = os.chmod, os.access
+
+        def refuse(path, mode, **kw):
+            raise PermissionError(13, "Operation not permitted")
+
+        def not_executable(path, mode, **kw):
+            if mode == os.X_OK and path.endswith("pre-commit"):
+                return False
+            return real_access(path, mode, **kw)
+
+        os.chmod, os.access = refuse, not_executable
+        try:
+            self.assertNotEqual(autoevolve.cmd_hooks(root), 0)
+        finally:
+            os.chmod, os.access = real_chmod, real_access
+        # The file is still written, so a human can chmod it by hand; only the claim is withheld.
+        self.assertTrue(os.path.isfile(os.path.join(root, ".git", "hooks", "pre-commit")))
 
 
 class PathParsingTests(unittest.TestCase):

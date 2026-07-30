@@ -228,8 +228,22 @@ def cmd_hooks(target: str, force: bool = False) -> int:
 
     try:
         os.chmod(hook_path, 0o755)
-    except Exception:
-        pass
+    except OSError as exc:
+        chmod_failure: OSError | None = exc
+    else:
+        chmod_failure = None
+
+    # A hook without the executable bit is not a hook. Git skips it without a word and the
+    # commit goes through unchecked, which is worse than having installed nothing: the user is
+    # told a gate exists and stops watching for what it was meant to catch. Windows has no such
+    # bit, git there runs the file regardless, and os.access ignores X_OK on Windows, so this
+    # check can only fire where it is true.
+    if not os.access(hook_path, os.X_OK):
+        detail = f" ({chmod_failure})" if chmod_failure else ""
+        print(f"Error: wrote {hook_path}, but it is not executable{detail}, so git will ignore "
+              f"it and commits will not be checked.\n"
+              f"      Fix it with: chmod +x {hook_path}", file=sys.stderr)
+        return 73
 
     print(f"[autoevolve] Installed pre-commit hook: {hook_path}")
     return 0
