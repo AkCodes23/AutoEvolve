@@ -349,8 +349,18 @@ def cmd_loop(target: str, cmdv: list, message: str | None = None, auto_commit: b
                 print("[autoevolve loop] --auto-commit needs --paths: refusing to run "
                       "`git add .`, which would commit unrelated work.", file=sys.stderr)
                 return 2
-            _git(["add", "--", *paths], target_abs, "staging experiment paths")
-            committed = _git(["commit", "-m", f"evolve: {desc}"], target_abs, "commit")
+            staged = _git(["add", "--", *paths], target_abs, "staging experiment paths")
+            if staged.returncode != 0:
+                # Committing after a failed stage is worse than not committing: the paths the
+                # user declared are absent, so whatever else was in the index ships instead,
+                # under a message naming an experiment it was no part of.
+                return 1
+            # The pathspec is what keeps this honest. `git commit` without one takes the whole
+            # index, so anything staged before the loop ran was committed as part of the
+            # experiment and journalled under its sha. The guard above refuses `git add .` for
+            # exactly that reason, and omitting the pathspec here gave the same result anyway.
+            committed = _git(["commit", "-m", f"evolve: {desc}", "--", *paths],
+                             target_abs, "commit")
             if committed.returncode != 0:
                 return 1
             # Journal the sha that now exists, not the literal "HEAD" recorded before committing.

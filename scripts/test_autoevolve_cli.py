@@ -185,6 +185,35 @@ class PathParsingTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("--paths", result.stderr)
 
+    def test_auto_commit_ships_only_the_declared_paths(self) -> None:
+        """The guard refusing `git add .` was undone by the commit that followed it.
+
+        `git commit` without a pathspec takes the whole index, so anything the user had staged
+        before the loop ran was committed under `evolve: <desc>` and journalled as the result
+        of a hypothesis that never touched it. Staging unrelated work before starting an
+        experiment is ordinary, so no error was needed to reach this.
+        """
+        cwd = repo()
+        with open(os.path.join(cwd, "notes.md"), "w", encoding="utf-8") as handle:
+            handle.write("unrelated work in progress\n")
+        git(["add", "notes.md"], cwd)
+        self.assertIn("PASS", loop(cwd, "--paths", "a.py", "--auto-commit", *self.OK).stdout)
+        shipped = subprocess.run(["git", "-C", cwd, "show", "--name-only", "--format=", "HEAD"],
+                                 capture_output=True, text=True).stdout.split()
+        self.assertEqual(shipped, ["a.py"])
+
+    def test_a_failed_stage_does_not_commit_the_pre_existing_index(self) -> None:
+        cwd = repo()
+        with open(os.path.join(cwd, "notes.md"), "w", encoding="utf-8") as handle:
+            handle.write("unrelated\n")
+        git(["add", "notes.md"], cwd)
+        before = subprocess.run(["git", "-C", cwd, "rev-parse", "HEAD"],
+                                capture_output=True, text=True).stdout.strip()
+        loop(cwd, "--paths", "no_such_file.py", "--auto-commit", *self.OK)
+        after = subprocess.run(["git", "-C", cwd, "rev-parse", "HEAD"],
+                               capture_output=True, text=True).stdout.strip()
+        self.assertEqual(before, after)
+
     def test_a_non_git_target_is_refused(self) -> None:
         tmp = tempfile.mkdtemp()
         self.assertEqual(loop(tmp, "--paths", "a.py", *self.OK).returncode, 66)
