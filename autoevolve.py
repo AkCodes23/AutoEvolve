@@ -140,7 +140,7 @@ def cmd_setup(target: str) -> int:
                 with open(direction_path, "w", encoding="utf-8") as f:
                     f.write(updated)
                 print(f"  [+] Customized DIRECTION.md test signal to: '{detected}'")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             pass
 
     if rc_inst == 0 and rc_init == 0:
@@ -278,7 +278,7 @@ def cmd_hooks(target: str, force: bool = False) -> int:
     return 0
 
 
-def _git(args: list, cwd: str, what: str | None = None):
+def _git(args: list, cwd: str, what: str | None = None) -> subprocess.CompletedProcess:
     """Run git, and never swallow a failure. Returns the CompletedProcess."""
     res = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
     if res.returncode != 0 and what:
@@ -302,7 +302,12 @@ def _revert_paths(target_abs: str, paths: list) -> None:
         _git(["checkout", "HEAD", "--", *tracked], target_abs, "revert of tracked paths")
         print(f"  reverted from HEAD: {', '.join(tracked)}")
     for path in untracked:
-        full = os.path.join(target_abs, path)
+        full = os.path.realpath(os.path.join(target_abs, path))
+        boundary = os.path.realpath(target_abs)
+        if not full.startswith(boundary + os.sep) and full != boundary:
+            print(f"  REFUSED to remove '{path}': resolves outside the target repo.",
+                  file=sys.stderr)
+            continue
         if os.path.isfile(full):
             os.remove(full)
             print(f"  removed untracked artifact: {path}")

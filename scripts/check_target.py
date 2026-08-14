@@ -40,7 +40,7 @@ def detect_signal(target_abs):
     for stack, markers, suggestion in SIGNALS:
         for marker in markers:
             path = os.path.join(target_abs, marker)
-            if os.path.isfile(path) or os.path.isdir(path):
+            if os.path.isfile(path) or (marker in ("tests", "test") and os.path.isdir(path)):
                 if stack not in stacks:
                     stacks.append(stack)
                 if command is None:
@@ -85,14 +85,14 @@ def check_target(target_dir: str) -> dict:
     if os.path.isfile(agents_path):
         results["agents_installed"] = True
         try:
-            with open(agents_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(agents_path, "r", encoding="utf-8") as f:
                 content = f.read()
                 # Only the marker the installers actually write (install.sh greps for this
                 # exact string). The previous `or ("AutoEvolve" in content)` clause made the
                 # real check dead code: an AGENTS.md saying the project does NOT use AutoEvolve
                 # satisfied it, so this reported a fingerprint that was never installed.
                 results["core_fingerprint"] = "AutoEvolve-Core" in content
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             pass
 
     if not results["agents_installed"]:

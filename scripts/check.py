@@ -190,7 +190,8 @@ def check_plugin_json_valid() -> None:
     for name in sorted(os.listdir(d)):
         if name.endswith(".json"):
             try:
-                json.load(open(os.path.join(d, name), encoding="utf-8"))
+                with open(os.path.join(d, name), encoding="utf-8") as fh:
+                    json.load(fh)
             except Exception as e:  # noqa: BLE001 - report any parse failure
                 failures.append(f"Invalid JSON in .claude-plugin/{name}: {e}")
 

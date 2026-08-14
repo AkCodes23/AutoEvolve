@@ -59,7 +59,7 @@ KEEP_PREFIXES = ("todo", "fixme", "hack", "xxx", "evolve:", "type:", "noqa", "pr
 # Requiring the colon or dash keeps ordinary prose out, so "# fixed in 3.11, see bpo-12345" and
 # "# fix the caller too" do not match.
 NARRATION = re.compile(
-    r"^(fix|fixed|fixes|change[d]?|update[d]?|add[ed]?|remove[d]?|delete[d]?|modif\w+|"
+    r"^(fix|fixed|fixes|change[d]?|update[d]?|add(?:ed)?|remove[d]?|delete[d]?|modif\w+|"
     r"refactor\w*|rename[d]?|replace[d]?|improve[d]?|new|before|after|old|was)\b\s*[:\-]",
     re.IGNORECASE)
 
