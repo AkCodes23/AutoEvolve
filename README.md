@@ -2,7 +2,7 @@
 
 > **Evolve the code, don't just write it: small steps, each verified.**
 
-AutoEvolve is a minimal, zero-dependency mindset prompt for AI coding assistants (Claude Code, Cursor, Windsurf, Copilot, Antigravity).
+AutoEvolve is a minimal, zero-dependency mindset prompt for AI coding assistants.
 
 It synthesizes the core principles of **DeepMind AlphaEvolve** (grounded verification), **Karpathy's autoresearch** (keep-or-revert loop), and **Dietrich Gebert's Ponytail** (YAGNI minimalism ladder) into a single 36-line drop-in ruleset.
 
@@ -51,13 +51,20 @@ Stop at the first rung that holds:
 
 ## Quick Setup (1-Click Drop-In)
 
-| Tool | Setup |
-|:---|:---|
-| **Claude Code / AGENTS.md** | Copy [`AGENTS.md`](./AGENTS.md) to your repository root. |
-| **Cursor** | Copy [`adapters/cursor.mdc`](./adapters/cursor.mdc) to `.cursor/rules/autoevolve.mdc`. |
-| **Windsurf** | Copy [`adapters/windsurf.md`](./adapters/windsurf.md) to `.windsurfrules`. |
-| **GitHub Copilot** | Copy [`adapters/copilot-instructions.md`](./adapters/copilot-instructions.md) to `.github/copilot-instructions.md`. |
-| **Custom System Prompt** | Copy the `<autoevolve_mindset>` block directly into your system instructions. |
+| Tool / IDE | Adapter File | Target Location in Your Repository |
+|:---|:---|:---|
+| **Claude Code / AGENTS.md** | [`AGENTS.md`](./AGENTS.md) | `AGENTS.md` (or `CLAUDE.md`) |
+| **Cursor** | [`adapters/cursor.mdc`](./adapters/cursor.mdc) | `.cursor/rules/autoevolve.mdc` |
+| **Windsurf** | [`adapters/windsurf.md`](./adapters/windsurf.md) | `.windsurfrules` |
+| **GitHub Copilot** | [`adapters/copilot-instructions.md`](./adapters/copilot-instructions.md) | `.github/copilot-instructions.md` |
+| **Cline / Roo Code** | [`adapters/cline.md`](./adapters/cline.md) | `.clinerules` |
+| **Aider** | [`adapters/aider.md`](./adapters/aider.md) | `CONVENTIONS.md` (or `aider --read adapters/aider.md`) |
+| **Continue.dev** | [`adapters/continue.md`](./adapters/continue.md) | `.continue/prompts/autoevolve.prompt` |
+| **Gemini / Antigravity** | [`adapters/gemini.md`](./adapters/gemini.md) | `GEMINI.md` |
+| **Zed AI** | [`adapters/zed.md`](./adapters/zed.md) | `.zed/rules.md` |
+| **JetBrains AI / Junie** | [`adapters/jetbrains.md`](./adapters/jetbrains.md) | `.jetbrains/ai-instructions.md` |
+| **Sourcegraph Cody** | [`adapters/cody.md`](./adapters/cody.md) | `.cody/instructions.md` |
+| **OpenHands / SWE-Agent** | [`adapters/openhands.md`](./adapters/openhands.md) | `.openhands/instructions.md` |
 
 ---
 
