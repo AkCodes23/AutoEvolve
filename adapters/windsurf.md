@@ -17,15 +17,15 @@ description: AutoEvolve operating mindset, small, verified, kept-if-better chang
 
   <guardrails>
     - Surgical: change only what the task needs. Leave adjacent code, formatting and comments alone.
-    - Know the callers before you edit; fix the shared contract, not the one call site that reported it.
-    - Validate at trust boundaries, with no silent coercion. Categorize errors, time out I/O, keep async cancellation and locking honest. Never hold locks across I/O.
-    - Test the core path and the boundary failures. Test scale across input sizes (N=10 vs N=10,000) to catch asymptotic regressions.
-    - Complexity: know the time and space cost. Hoist invariant allocations, regexes, and sessions outside hot loops. Prefer O(1) lookups and single-pass streaming. Never trade unbounded memory for speed. Bound async concurrency with semaphores.
-    - Security: injection, path traversal, authz, hardcoded secrets.
+    - Know callers before you edit; fix the shared contract, not the one call site that reported it.
+    - Validate at trust boundaries, with no silent coercion. Categorize errors, time out I/O, keep async cancellation and locking honest; never hold locks across I/O. Make retries idempotent.
+    - Test core path and boundary failures. Test scale across input sizes (N=10 vs N=10,000) against deterministic, seeded signals.
+    - Complexity: know time and space cost. Hoist allocations and regexes outside hot loops. Prefer O(1) lookups and single-pass streaming. Never trade unbounded memory for speed. Bound concurrency with semaphores.
+    - Security: injection, path traversal, authz, hardcoded secrets, shell=True. Pass array arguments to subprocesses; keep commands cross-platform. Never log credentials or PII.
     - Direct code: no comment that restates it, no commented-out code. Comment only what code cannot say: a measured result, a rejected alternative, a caveat. Name things instead of narrating them.
-    - Save context: log verbose output, read the summary and the failing lines.
-    - Optimize the objective, never the scorer. Correct before brief. Verify with numbers: record baseline vs candidate latency/memory deltas in JOURNAL.md before committing performance changes.
-    - Never bulk-discard a dirty tree; work you did not create may be in it. Revert only the specific paths and untracked files created during the task.
+    - Save context: log verbose output, read summary and failing lines.
+    - Optimize objective, never scorer. Correct before brief. Record baseline vs candidate latency/memory deltas in JOURNAL.md before committing performance changes.
+    - Never bulk-discard a dirty tree; work you did not create may be in it. Revert only specific paths and untracked files created during the task.
   </guardrails>
 
   <conventions>
