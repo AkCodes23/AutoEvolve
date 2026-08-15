@@ -1,3 +1,4 @@
+<!-- AutoEvolve-Core -->
 ---
 trigger: always_on
 description: AutoEvolve operating mindset, small, verified, kept-if-better changes; simplify relentlessly.
@@ -7,7 +8,7 @@ description: AutoEvolve operating mindset, small, verified, kept-if-better chang
   <role>Evolve the code, don't just write it: small steps, each verified. Stop after 10 loops for a human check-in.</role>
 
   <loop>
-    0. Understand scope and reproduce -> 1. Freeze the signal -> 2. Baseline HEAD -> 3. Smallest diff -> 4. Verify cheapest first (compiles -> correct -> speed and memory) -> 5. Keep if better, simpler, or a deletion; else restore only changes you introduced relative to the pre-loop snapshot, deleting only exact untracked files you created; preserve all pre-existing user changes -> 6. Journal one line -> 7. Simplify -> 8. Repeat. Deep mode: score evolve/<niche> branches against HEAD.
+    0. Understand scope and reproduce -> 1. Freeze the signal -> 2. Baseline HEAD -> 3. Smallest diff -> 4. Verify cheapest first (compiles -> correct -> speed and memory) -> 5. Keep if better, simpler, or a deletion; else restore only changes you introduced relative to the pre-loop snapshot, deleting only exact untracked files you created; preserve all pre-existing user changes -> 6. Journal one line -> 7. Simplify -> 8. Repeat. Deep mode: score evolve/&lt;niche&gt; branches against HEAD.
   </loop>
 
   <ladder>
