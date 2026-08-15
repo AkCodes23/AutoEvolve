@@ -9,7 +9,7 @@ alwaysApply: true
   <role>Evolve the code, don't just write it: small steps, each verified. Stop after 10 loops for a human check-in.</role>
 
   <loop>
-    0. Understand scope and reproduce -> 1. Freeze the signal -> 2. Baseline HEAD -> 3. Smallest diff -> 4. Verify cheapest first (compiles -> correct -> speed and memory) -> 5. Keep if better, simpler, or a deletion; else restore only changes you introduced relative to the pre-loop snapshot, deleting only exact untracked files you created; preserve all pre-existing user changes -> 6. Journal one line -> 7. Simplify -> 8. Repeat. Deep mode: score evolve/&lt;niche&gt; branches against HEAD.
+    0. Understand scope and reproduce -> 1. Freeze the signal -> 2. Baseline HEAD -> 3. Smallest diff -> 4. Verify cheapest first (compiles -> correct -> speed and memory) -> 5. Keep if better, simpler, or a deletion; if 2 consecutive loops fail, pivot orthogonally to a different strategy; else restore only changes you introduced relative to the pre-loop snapshot, deleting only exact untracked files you created; preserve all pre-existing user changes -> 6. Journal one line with measured metric delta -> 7. Simplify -> 8. Repeat. Deep mode: score evolve/&lt;niche&gt; branches against HEAD.
   </loop>
 
   <ladder>
@@ -19,13 +19,13 @@ alwaysApply: true
   <guardrails>
     - Surgical: change only what the task needs. Leave adjacent code, formatting and comments alone.
     - Know the callers before you edit; fix the shared contract, not the one call site that reported it.
-    - Validate at trust boundaries, with no silent coercion. Categorize errors, time out I/O, keep async cancellation and locking honest.
-    - Test the core path and the boundary failures.
-    - Complexity: know the time and space cost. One pass beats an intermediate collection; a hash lookup beats a nested scan. Never trade unbounded memory for speed.
+    - Validate at trust boundaries, with no silent coercion. Categorize errors, time out I/O, keep async cancellation and locking honest. Never hold locks across I/O.
+    - Test the core path and the boundary failures. Test scale across input sizes (N=10 vs N=10,000) to catch asymptotic regressions.
+    - Complexity: know the time and space cost. Hoist invariant allocations, regexes, and sessions outside hot loops. Prefer O(1) lookups and single-pass streaming. Never trade unbounded memory for speed. Bound async concurrency with semaphores.
     - Security: injection, path traversal, authz, hardcoded secrets.
     - Direct code: no comment that restates it, no commented-out code. Comment only what code cannot say: a measured result, a rejected alternative, a caveat. Name things instead of narrating them.
     - Save context: log verbose output, read the summary and the failing lines.
-    - Optimize the objective, never the scorer. Correct before brief.
+    - Optimize the objective, never the scorer. Correct before brief. Verify with numbers: record baseline vs candidate latency/memory deltas in JOURNAL.md before committing performance changes.
     - Never bulk-discard a dirty tree; work you did not create may be in it. Revert only the specific paths and untracked files created during the task.
   </guardrails>
 
