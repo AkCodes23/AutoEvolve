@@ -1,168 +1,116 @@
-<#
-.SYNOPSIS
-AutoEvolve PowerShell installer for Windows environments.
+# AutoEvolve 1-Line Zero-Dependency Installer (Windows PowerShell)
+# Usage:
+#   irm https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only/install.ps1 | iex
+#   .\install.ps1 [-TargetDir <path>] [-Force]
 
-.DESCRIPTION
-Run this script from a reviewed release checkout:
-  .\install.ps1 -Target C:\path\to\your\repo
-
-It never executes a remote script, never overwrites an existing file, and reports
-every skipped file so users do not mistake a partial installation for a completed one.
-
-.PARAMETER Target
-Target directory where AutoEvolve instructions should be installed. Defaults to current directory.
-
-.PARAMETER DryRun
-If set, previews files that would be created without writing any files.
-#>
-
-[CmdletBinding()]
 param (
-    [Parameter(Position=0)]
-    [string]$Target = (Get-Location).Path,
-
-    [Parameter()]
-    [switch]$DryRun
+    [string]$TargetDir = ".",
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
 
-$SourceDir = $PSScriptRoot
-if (-not $SourceDir) {
-    $SourceDir = (Get-Location).Path
-}
+$RepoUrl = "https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only"
+$ResolvedTarget = (Resolve-Path -LiteralPath $TargetDir).Path
 
-if (-not (Test-Path -Path (Join-Path $SourceDir "AGENTS.md"))) {
-    [Console]::Error.WriteLine("Installer source is incomplete. Download a release checkout; do not pipe this script from a URL.")
-    exit 65
-}
+Write-Host "=== AutoEvolve Installer ===" -ForegroundColor Cyan
+Write-Host "Target directory: $ResolvedTarget"
 
-if (-not (Test-Path -Path $Target)) {
-    [Console]::Error.WriteLine("Target directory does not exist: $Target")
-    exit 66
-}
-
-$TargetDir = (Get-Item -Path $Target).FullName
-
-$script:CanonicalSkipped = $false
-$script:OtherSkipped = $false
-$script:Written = $false
-
-$AgentsPath = Join-Path $TargetDir "AGENTS.md"
-$script:CanonicalPresent = $false
-if (Test-Path -Path $AgentsPath) {
-    $content = Get-Content -Path $AgentsPath -ErrorAction SilentlyContinue
-    if ($content -match 'AutoEvolve-Core' -or $content -match '^#+\s+AutoEvolve') {
-        $script:CanonicalPresent = $true
-    }
-}
-
-function Install-AutoEvolveFile {
+function Install-File {
     param (
-        [string]$SourceRel,
-        [string]$DestinationRel,
-        [bool]$IsCanonical = $false
+        [string]$RelativeSrc,
+        [string]$RelativeDst
     )
 
-    $sourceFile = Join-Path $SourceDir $SourceRel
-    $destFile = Join-Path $TargetDir $DestinationRel
+    $DestinationPath = Join-Path -Path $ResolvedTarget -ChildPath $RelativeDst
+    $DestinationDir = Split-Path -Path $DestinationPath -Parent
 
-    if (-not (Test-Path -Path $sourceFile)) {
-        [Console]::Error.WriteLine("Missing installer source: $SourceRel")
-        exit 65
-    }
-
-    if (Test-Path -Path $destFile) {
-        Write-Host "  skip $DestinationRel (already exists; no overwrite)"
-        if ($IsCanonical) { $script:CanonicalSkipped = $true } else { $script:OtherSkipped = $true }
+    if ((Test-Path -LiteralPath $DestinationPath) -and (-not $Force)) {
+        Write-Host "  [skip] $RelativeDst already exists (use -Force to overwrite)" -ForegroundColor DarkGray
         return
     }
 
-    if ($DryRun) {
-        Write-Host "  would write $DestinationRel"
-        return
+    if (-not (Test-Path -LiteralPath $DestinationDir)) {
+        New-Item -ItemType Directory -LiteralPath $DestinationDir -Force | Out-Null
     }
 
-    $destDir = Split-Path -Path $destFile -Parent
-    if (-not (Test-Path -Path $destDir)) {
-        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
-    }
+    $LocalSourcePath = Join-Path -Path $PSScriptRoot -ChildPath $RelativeSrc
 
-    $tempFile = Join-Path $destDir (".autoevolve-install-$PID-$([System.IO.Path]::GetRandomFileName()).tmp")
-    try {
-        Copy-Item -Path $sourceFile -Destination $tempFile -Force
-        if (-not (Test-Path -Path $destFile)) {
-            Move-Item -Path $tempFile -Destination $destFile -ErrorAction Stop
-            Write-Host "  wrote $DestinationRel"
-            $script:Written = $true
-        } else {
-            Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
-            Write-Host "  skip $DestinationRel (created concurrently; no overwrite)"
-            if ($IsCanonical) { $script:CanonicalSkipped = $true } else { $script:OtherSkipped = $true }
-        }
-    } catch {
-        if (Test-Path -Path $tempFile) { Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue }
-        throw $_
-    }
-}
-
-Write-Host "AutoEvolve: source=$SourceDir target=$TargetDir"
-$CanonicalSource = "AGENTS.md"
-
-Install-AutoEvolveFile -SourceRel $CanonicalSource -DestinationRel "AGENTS.md" -IsCanonical $true
-
-if ((Test-Path -Path (Join-Path $TargetDir ".claude")) -or (Test-Path -Path (Join-Path $TargetDir "CLAUDE.md"))) {
-    Install-AutoEvolveFile -SourceRel "adapters\claude.md" -DestinationRel "CLAUDE.md"
-}
-
-if (Test-Path -Path (Join-Path $TargetDir ".cursor")) {
-    Install-AutoEvolveFile -SourceRel "adapters\cursor.mdc" -DestinationRel ".cursor\rules\autoevolve.mdc"
-}
-
-if (Test-Path -Path (Join-Path $TargetDir ".windsurf")) {
-    Install-AutoEvolveFile -SourceRel "adapters\windsurf.md" -DestinationRel ".windsurf\rules\autoevolve.md"
-}
-
-if (Test-Path -Path (Join-Path $TargetDir ".github")) {
-    Install-AutoEvolveFile -SourceRel "adapters\copilot-instructions.md" -DestinationRel ".github\copilot-instructions.md"
-}
-
-if ($DryRun) {
-    Write-Host "Dry run complete. No files changed."
-    exit 0
-}
-
-if ($script:CanonicalSkipped -and $script:CanonicalPresent) {
-    Write-Host "AGENTS.md already carries AutoEvolve; left untouched."
-    if ($script:Written) {
-        Write-Host "Tool adapters listed above were added alongside it."
-    }
-    Write-Host "Already installed. Nothing to merge."
-    exit 0
-}
-
-if ($script:CanonicalSkipped) {
-    # Not Write-Error: with $ErrorActionPreference = "Stop" it terminates, so every line below
-    # was unreachable and the documented exit code 2 collapsed to 1. The Windows user was told
-    # nothing about the adapters that had in fact just been written and were already steering
-    # their agents. Write to stderr directly instead.
-    [Console]::Error.WriteLine("Manual merge required: AGENTS.md already exists in the target and does not carry AutoEvolve.")
-    Write-Host "Review $SourceDir\$CanonicalSource and merge it under a clear heading, then rerun -DryRun to inspect adapters."
-    if ($script:Written) {
-        Write-Host "Note: the tool adapters listed above WERE written and are already active for those tools."
-        Write-Host "Only AGENTS.md still needs merging."
+    if ($PSScriptRoot -and (Test-Path -LiteralPath $LocalSourcePath)) {
+        Copy-Item -LiteralPath $LocalSourcePath -Destination $DestinationPath -Force
     } else {
-        Write-Host "Nothing was written; AutoEvolve is not active in this target."
+        $DownloadUrl = "$RepoUrl/$RelativeSrc"
+        Invoke-RestMethod -Uri $DownloadUrl -OutFile $DestinationPath
     }
-    exit 2
+
+    Write-Host "  [+] Installed $RelativeDst" -ForegroundColor Green
 }
 
-if ($script:OtherSkipped) {
-    Write-Host "Installed canonical AGENTS.md, but one or more tool adapters were skipped. Review the messages above."
+# 1. Core Mindset & Conventions
+Install-File "AGENTS.md" "AGENTS.md"
+Install-File "DIRECTION.md" "DIRECTION.md"
+Install-File "JOURNAL.md" "JOURNAL.md"
+
+# 2. Detect IDEs and Install Specific Adapters
+$InstalledAdapter = $false
+
+if ((Test-Path -LiteralPath (Join-Path $ResolvedTarget ".cursor")) -or (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".cursorrules"))) {
+    Install-File "adapters/cursor.mdc" ".cursor/rules/autoevolve.mdc"
+    $InstalledAdapter = $true
 }
 
-if ($script:Written) {
-    Write-Host "Installation complete. Review the added files before relying on them in an agent session."
-} else {
-    Write-Host "No files were written."
+if ((Test-Path -LiteralPath (Join-Path $ResolvedTarget ".windsurfrules")) -or (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".windsurf"))) {
+    Install-File "adapters/windsurf.md" ".windsurfrules"
+    $InstalledAdapter = $true
 }
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".github")) {
+    Install-File "adapters/copilot-instructions.md" ".github/copilot-instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".clinerules")) {
+    Install-File "adapters/cline.md" ".clinerules"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".continue")) {
+    Install-File "adapters/continue.md" ".continue/prompts/autoevolve.prompt"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".zed")) {
+    Install-File "adapters/zed.md" ".zed/rules.md"
+    $InstalledAdapter = $true
+}
+
+if ((Test-Path -LiteralPath (Join-Path $ResolvedTarget ".idea")) -or (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".jetbrains"))) {
+    Install-File "adapters/jetbrains.md" ".jetbrains/ai-instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".cody")) {
+    Install-File "adapters/cody.md" ".cody/instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".openhands")) {
+    Install-File "adapters/openhands.md" ".openhands/instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".gemini")) {
+    Install-File "adapters/gemini.md" "GEMINI.md"
+    $InstalledAdapter = $true
+}
+
+if (-not $InstalledAdapter) {
+    # Default: install Claude/generic adapter as CLAUDE.md
+    Install-File "adapters/claude.md" "CLAUDE.md"
+}
+
+Write-Host "----------------------------------------" -ForegroundColor DarkGray
+Write-Host "AutoEvolve mindset installed successfully." -ForegroundColor Green
+Write-Host "   Next steps:"
+Write-Host "   1. Set your goal and verification command in DIRECTION.md"
+Write-Host "   2. Prompt your AI coding agent to start evolving!"

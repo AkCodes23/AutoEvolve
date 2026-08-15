@@ -1,8 +1,5 @@
----
-description: AutoEvolve operating mindset, small, verified, kept-if-better changes; simplify relentlessly.
-globs:
-alwaysApply: true
----
+<!-- AutoEvolve-Core -->
+# AutoEvolve Rules for Zed AI Assistant
 
 <autoevolve_mindset>
   <role>Evolve the code, don't just write it: small steps, each verified. Stop after 10 loops for a human check-in.</role>

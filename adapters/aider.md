@@ -1,8 +1,7 @@
----
-description: AutoEvolve operating mindset, small, verified, kept-if-better changes; simplify relentlessly.
-globs:
-alwaysApply: true
----
+<!-- AutoEvolve-Core -->
+# AutoEvolve Conventions for Aider
+
+When working in this repository with Aider, follow these core conventions:
 
 <autoevolve_mindset>
   <role>Evolve the code, don't just write it: small steps, each verified. Stop after 10 loops for a human check-in.</role>
