@@ -79,6 +79,31 @@ if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".continue")) {
     $InstalledAdapter = $true
 }
 
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".zed")) {
+    Install-File "adapters/zed.md" ".zed/rules.md"
+    $InstalledAdapter = $true
+}
+
+if ((Test-Path -LiteralPath (Join-Path $ResolvedTarget ".idea")) -or (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".jetbrains"))) {
+    Install-File "adapters/jetbrains.md" ".jetbrains/ai-instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".cody")) {
+    Install-File "adapters/cody.md" ".cody/instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".openhands")) {
+    Install-File "adapters/openhands.md" ".openhands/instructions.md"
+    $InstalledAdapter = $true
+}
+
+if (Test-Path -LiteralPath (Join-Path $ResolvedTarget ".gemini")) {
+    Install-File "adapters/gemini.md" "GEMINI.md"
+    $InstalledAdapter = $true
+}
+
 if (-not $InstalledAdapter) {
     # Default: install Claude/generic adapter as CLAUDE.md
     Install-File "adapters/claude.md" "CLAUDE.md"

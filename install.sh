@@ -2,18 +2,22 @@
 # AutoEvolve 1-Line Zero-Dependency Installer (POSIX / macOS / Linux)
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only/install.sh | sh
-#   ./install.sh [--force]
+#   ./install.sh [TARGET_DIR] [--force]
 
 set -e
 
 REPO_URL="https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only"
-TARGET_DIR="${1:-.}"
+TARGET_DIR="."
 FORCE=0
 
 for arg in "$@"; do
     case "$arg" in
-        --force|-f) FORCE=1 ;;
-        *) TARGET_DIR="$arg" ;;
+        --force|-f)
+            FORCE=1
+            ;;
+        *)
+            TARGET_DIR="$arg"
+            ;;
     esac
 done
 
@@ -53,7 +57,7 @@ fetch_or_copy "AGENTS.md" "AGENTS.md"
 fetch_or_copy "DIRECTION.md" "DIRECTION.md"
 fetch_or_copy "JOURNAL.md" "JOURNAL.md"
 
-# 2. Detect IDEs and Install Specific Adapters
+# 2. Detect IDEs and Install Matching Adapters
 installed_adapter=0
 
 if [ -d ".cursor" ] || [ -f ".cursorrules" ]; then
@@ -78,6 +82,31 @@ fi
 
 if [ -d ".continue" ]; then
     fetch_or_copy "adapters/continue.md" ".continue/prompts/autoevolve.prompt"
+    installed_adapter=1
+fi
+
+if [ -d ".zed" ]; then
+    fetch_or_copy "adapters/zed.md" ".zed/rules.md"
+    installed_adapter=1
+fi
+
+if [ -d ".idea" ] || [ -d ".jetbrains" ]; then
+    fetch_or_copy "adapters/jetbrains.md" ".jetbrains/ai-instructions.md"
+    installed_adapter=1
+fi
+
+if [ -d ".cody" ]; then
+    fetch_or_copy "adapters/cody.md" ".cody/instructions.md"
+    installed_adapter=1
+fi
+
+if [ -d ".openhands" ]; then
+    fetch_or_copy "adapters/openhands.md" ".openhands/instructions.md"
+    installed_adapter=1
+fi
+
+if [ -d ".gemini" ]; then
+    fetch_or_copy "adapters/gemini.md" "GEMINI.md"
     installed_adapter=1
 fi
 

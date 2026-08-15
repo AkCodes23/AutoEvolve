@@ -26,13 +26,13 @@ Install the mindset and matching editor rules in any repository in 1 second:
 
 ## The Core Loop
 
-```
+```text
 0. Understand scope and reproduce
 1. Freeze the signal (define the test/metric before editing; never edit the scorer)
 2. Baseline HEAD
 3. Smallest diff (change only what the task needs)
 4. Verify cheapest first (compiles -> correct -> speed and memory)
-5. Keep if better, simpler, or a deletion; else revert cleanly from HEAD
+5. Keep if better, simpler, or a deletion; else restore only changes you introduced relative to the pre-loop snapshot, deleting only exact untracked files you created; preserve all pre-existing user changes
 6. Journal one line (commit, signal, decision, what changed)
 7. Simplify relentlessly
 8. Repeat (stop after 10 loops for a human check-in)
@@ -61,7 +61,7 @@ Stop at the first rung that holds:
 - **Direct code**: No comments that restate the code, no commented-out code. Comment only what code cannot say: a measured result, a rejected alternative, a caveat.
 - **Context frugality**: Run test suites in quiet mode (`pytest -q`), inspect the summary and failing lines.
 - **Signal integrity**: Optimize the objective, never the scorer. Correct before brief.
-- **Tree safety**: Never bulk-discard a dirty tree; work you did not create may be in it.
+- **Tree safety**: Never bulk-discard a dirty tree; work you did not create may be in it. Revert only the specific paths and untracked files created during the task.
 
 ---
 
@@ -73,14 +73,22 @@ To protect your repository against over-engineering, test tampering, and comment
 name: AutoEvolve AI Guardrails
 on: [pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   guardrails:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
+        with:
+          python-version: "3.11"
       - run: python .github/scripts/check_pr.py
 ```
 
@@ -88,20 +96,20 @@ jobs:
 
 ## Quick Setup (1-Click Drop-In Matrix)
 
-| Tool / IDE | Adapter File | Target Location in Your Repository |
-|:---|:---|:---|
-| **Claude Code / AGENTS.md** | [`AGENTS.md`](./AGENTS.md) | `AGENTS.md` (or `CLAUDE.md`) |
-| **Cursor IDE** | [`adapters/cursor.mdc`](./adapters/cursor.mdc) | `.cursor/rules/autoevolve.mdc` |
-| **Windsurf (Cascade)** | [`adapters/windsurf.md`](./adapters/windsurf.md) | `.windsurfrules` |
-| **GitHub Copilot** | [`adapters/copilot-instructions.md`](./adapters/copilot-instructions.md) | `.github/copilot-instructions.md` |
-| **Cline & Roo Code** | [`adapters/cline.md`](./adapters/cline.md) | `.clinerules` |
-| **Aider CLI** | [`adapters/aider.md`](./adapters/aider.md) | `CONVENTIONS.md` (or `aider --read ...`) |
-| **Continue.dev** | [`adapters/continue.md`](./adapters/continue.md) | `.continue/prompts/autoevolve.prompt` |
-| **Google Gemini & Antigravity** | [`adapters/gemini.md`](./adapters/gemini.md) | `GEMINI.md` |
-| **Zed AI Assistant** | [`adapters/zed.md`](./adapters/zed.md) | `.zed/rules.md` |
-| **JetBrains AI / Junie** | [`adapters/jetbrains.md`](./adapters/jetbrains.md) | `.jetbrains/ai-instructions.md` |
-| **Sourcegraph Cody** | [`adapters/cody.md`](./adapters/cody.md) | `.cody/instructions.md` |
-| **OpenHands & SWE-Agent** | [`adapters/openhands.md`](./adapters/openhands.md) | `.openhands/instructions.md` |
+| Tool / IDE | Adapter File | Target Location | Installer Mode |
+|:---|:---|:---|:---|
+| **Claude Code / AGENTS.md** | [`AGENTS.md`](./AGENTS.md) | `AGENTS.md` (or `CLAUDE.md`) | Default fallback |
+| **Cursor IDE** | [`adapters/cursor.mdc`](./adapters/cursor.mdc) | `.cursor/rules/autoevolve.mdc` | Auto-detected (`.cursor`) |
+| **Windsurf (Cascade)** | [`adapters/windsurf.md`](./adapters/windsurf.md) | `.windsurfrules` | Auto-detected (`.windsurfrules`) |
+| **GitHub Copilot** | [`adapters/copilot-instructions.md`](./adapters/copilot-instructions.md) | `.github/copilot-instructions.md` | Auto-detected (`.github`) |
+| **Cline & Roo Code** | [`adapters/cline.md`](./adapters/cline.md) | `.clinerules` | Auto-detected (`.clinerules`) |
+| **Aider CLI** | [`adapters/aider.md`](./adapters/aider.md) | `CONVENTIONS.md` | Manual / `aider --read ...` |
+| **Continue.dev** | [`adapters/continue.md`](./adapters/continue.md) | `.continue/prompts/autoevolve.prompt` | Auto-detected (`.continue`) |
+| **Google Gemini & Antigravity** | [`adapters/gemini.md`](./adapters/gemini.md) | `GEMINI.md` | Auto-detected (`.gemini`) |
+| **Zed AI Assistant** | [`adapters/zed.md`](./adapters/zed.md) | `.zed/rules.md` | Auto-detected (`.zed`) |
+| **JetBrains AI / Junie** | [`adapters/jetbrains.md`](./adapters/jetbrains.md) | `.jetbrains/ai-instructions.md` | Auto-detected (`.idea`) |
+| **Sourcegraph Cody** | [`adapters/cody.md`](./adapters/cody.md) | `.cody/instructions.md` | Auto-detected (`.cody`) |
+| **OpenHands & SWE-Agent** | [`adapters/openhands.md`](./adapters/openhands.md) | `.openhands/instructions.md` | Auto-detected (`.openhands`) |
 
 ---
 
