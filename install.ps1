@@ -31,7 +31,7 @@ function Install-File {
     }
 
     if (-not (Test-Path -LiteralPath $DestinationDir)) {
-        New-Item -ItemType Directory -LiteralPath $DestinationDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
     }
 
     $LocalSourcePath = Join-Path -Path $PSScriptRoot -ChildPath $RelativeSrc
