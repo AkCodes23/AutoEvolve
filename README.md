@@ -224,4 +224,4 @@ Many AI frameworks try to build heavyweight CLI wrappers, daemon processes, or p
 
 ## 📄 License
 
-[MIT](./LICENSE) © 2026 AutoEvolve Authors
+[MIT](./LICENSE) © 2026 AutoEvolve
