@@ -6,14 +6,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)]()
-[![Prompt Size](https://img.shields.io/badge/prompt%20size-~600%20tokens-blue.svg)]()
 [![Supported Platforms](https://img.shields.io/badge/platforms-12%20IDEs%20%26%20Agents-purple.svg)]()
 [![CI Guardrails](https://img.shields.io/badge/CI-AI%20PR%20Guardrail-orange.svg)]()
 
 *A minimal, zero-dependency, prompt-first engineering mindset for AI coding assistants.*
-
-[Quick Install](#-1-line-quick-install) • [The Problem](#-the-problem-autoevolve-solves) • [How It Works](#-how-it-works) • [The 9-Step Loop](#-the-9-step-evolutionary-loop) • [Minimalism Ladder](#-the-7-rung-minimalism-ladder) • [Supported IDEs](#-1-click-drop-in-matrix-12-platforms) • [CI Guardrails](#-github-actions-pr-guardrail)
-
 </div>
 
 ---
@@ -99,7 +95,7 @@ AutoEvolve synthesizes **DeepMind AlphaEvolve** (grounded verification), **Andre
 
 ---
 
-## 📖 Real-World Developer Walkthrough
+## 📖 Developer Walkthrough
 
 ### 1. Human defines the goal in `DIRECTION.md`:
 ```markdown
