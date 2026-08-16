@@ -1,12 +1,12 @@
 #!/bin/sh
 # AutoEvolve 1-Line Zero-Dependency Installer (POSIX / macOS / Linux)
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | sh
 #   ./install.sh [TARGET_DIR] [--force]
 
 set -e
 
-REPO_URL="https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only"
+REPO_URL="https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main"
 TARGET_DIR="."
 FORCE=0
 

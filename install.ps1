@@ -1,6 +1,6 @@
 # AutoEvolve 1-Line Zero-Dependency Installer (Windows PowerShell)
 # Usage:
-#   irm https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.ps1 | iex
 #   .\install.ps1 [-TargetDir <path>] [-Force]
 
 param (
@@ -10,7 +10,7 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-$RepoUrl = "https://raw.githubusercontent.com/AkCodes23/AutoEvolve/lean/mindset-only"
+$RepoUrl = "https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main"
 $ResolvedTarget = (Resolve-Path -LiteralPath $TargetDir).Path
 
 Write-Host "=== AutoEvolve Installer ===" -ForegroundColor Cyan
