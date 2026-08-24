@@ -129,9 +129,9 @@ pytest tests/perf/test_search.py -q
 2. Baseline HEAD
 3. Smallest diff; identify independent sub-tasks and fan them out as a DAG
 4. Verify at the join barrier: hard gates (compiles, tests pass, schema intact) must all hold;
-   then evaluate soft gates (latency budgets, memory ceilings, drift thresholds) proportionally
-5. Keep if better, simpler, or a deletion; if 2 consecutive loops fail, pivot orthogonally;
-   if 3+ loops fail, question the architecture and pause for human;
+   then evaluate soft gates (latency budgets, memory ceilings, drift thresholds) defined in DIRECTION.md proportionally
+5. Keep if better, simpler, or a deletion; if 3+ consecutive loops fail, question the architecture and pause for human;
+   elif 2 fail, pivot orthogonally;
    else restore only changes introduced relative to pre-loop snapshot (preserve user dirty tree)
 6. Journal one line with measured metric delta
 7. Simplify: prune superseded rules, enforce token budgets on guidance files, consolidate
@@ -165,7 +165,7 @@ Stop at the first rung that holds:
 - **Asymptotic Scaling**: Test critical paths across scales (\(N=10\) vs \(N=10{,}000\)) against deterministic, seeded signals.
 - **Log Sanitization**: Redact secrets, Authorization tokens, and PII before writing to console or journals.
 - **Direct Code**: Code explains what; comments explain why. Never commit change narration or dead code.
-- **Error-Proof by Design (Poka-Yoke)**: Make invalid states unrepresentable via types, schemas, and constraints. Catch errors at compile/design time rather than runtime. Fail fast with clear, actionable messages.
+- **Error-Proof by Design (Poka-Yoke)**: Make invalid internal states unrepresentable via types, schemas, and constraints. Catch defects at compile/design time before runtime, while continuing to strictly validate untrusted external inputs at runtime boundaries. Fail fast with clear, actionable messages.
 - **Evidence Before Claims**: Run the verification command and cite its output before asserting completion. "Should work" and "looks correct" are not evidence; only fresh command output is.
 - **Proactive Circuit Breaking**: Track rate-limit windows, token quotas, and service health before calling downstream services. Route around exhausted or degraded dependencies instead of burning retry cycles.
 - **Content-Addressed Invalidation**: Hash upstream inputs and configs; when hashes diverge, auto-invalidate stale downstream artifacts while unconditionally preserving user-created files and production outputs.
@@ -177,11 +177,11 @@ Stop at the first rung that holds:
 | Dimension | Standard AutoEvolve | Next-Gen AutoEvolve |
 |---|---|---|
 | **Workflow Topology** | Strictly linear loop | DAG parallelism with barrier sync |
-| **Verification Gate** | Binary pass/fail assertions | Multi-metric banding (hard + soft gates) |
+| **Verification Gate** | Binary pass/fail assertions | Multi-metric banding (Hard + Soft gates via DIRECTION.md) |
 | **Context Hygiene** | Monotonic rule accumulation | Active instruction pruning & token budgets |
-| **Failure Handling** | Reactive try-catch retries | Proactive circuit breaking & quota routing |
-| **Failure Escalation** | Fixed 2-loop pivot | Graduated: 2→pivot strategy, 3+→question architecture |
-| **Error Prevention** | Runtime validation | Poka-yoke: invalid states unrepresentable at design time |
+| **Failure Handling** | Reactive try-catch retries | Proactive circuit breaking & quota routing (policy-driven) |
+| **Failure Escalation** | Fixed 2-loop pivot | Graduated: 3+→question architecture, 2→pivot strategy |
+| **Error Prevention** | Runtime validation | Poka-yoke design-time types + runtime boundary validation |
 | **Completion Claims** | Implicit trust | Evidence-gated: verification output required before claims |
 | **Build/Asset Cache** | Timestamp/git-based tracking | Content-addressed invalidation graphs |
 
