@@ -172,18 +172,80 @@ Stop at the first rung that holds:
 
 ---
 
-## 🚀 Next-Gen Capabilities (v2)
+## 🚀 Next-Gen Capabilities (v3.0 - Cumulative Evidence Inheritance)
 
-| Dimension | Standard AutoEvolve | Next-Gen AutoEvolve |
-|---|---|---|
-| **Workflow Topology** | Strictly linear loop | DAG parallelism with barrier sync |
-| **Verification Gate** | Binary pass/fail assertions | Multi-metric banding (Hard + Soft gates via DIRECTION.md) |
-| **Context Hygiene** | Monotonic rule accumulation | Active instruction pruning & token budgets |
-| **Failure Handling** | Reactive try-catch retries | Proactive circuit breaking & quota routing (policy-driven) |
-| **Failure Escalation** | Fixed 2-loop pivot | Graduated: 3+→question architecture, 2→pivot strategy |
-| **Error Prevention** | Runtime validation | Poka-yoke design-time types + runtime boundary validation |
-| **Completion Claims** | Implicit trust | Evidence-gated: verification output required before claims |
-| **Build/Asset Cache** | Timestamp/git-based tracking | Content-addressed invalidation graphs |
+AutoEvolve v3.0 integrates the breakthrough principles of **PRAXIST** (*"From Experimental Artifacts to Solution Lineages"*, arXiv:2608.25955), moving beyond simple winner-takes-all keep/revert loops into a cumulative, evidence-inheriting system:
+
+| Dimension | Legacy AI Assistants | AutoEvolve (v1/v2) | AutoEvolve v3.0 (PRAXIST Core) |
+|---|---|---|---|
+| **Pre-Edit Governance** | Edit blindly without plan | "Smallest diff" heuristic | **Deep Innovation Gate (DIG)**: Pre-registered hypothesis, surface, intent, and anti-goals |
+| **Failed Experiments** | Repeatedly tried / forgotten | Reverted & discarded | **First-Class Failure Retention**: Extracted as active constraints into `CONSTRAINTS.md` |
+| **Evaluation Depth** | Single unstructured run | Binary command test | **Multi-Stage Evidence Ladder**: `smoke` (<1s) $\to$ `scout` (<5s) $\to$ `complete` (<30s) |
+| **Multi-Branching** | Random greedy edits | Heuristic `evolve/<niche>` | **Quantified Diversity (QD)**: Coordinate caps across $(family, surface, intent)$ |
+| **Memory / Context** | Prompt bloat / context limit | Hard stop at 10 loops | **Gems Memory Compression**: Periodic bounded distillation into `.autoevolve/gems.md` (50+ loops) |
+| **Adversarial Rigor** | Agent self-approval | Single pass metric | **Adversarial Skeptic Audit**: Red-teams for assertion weakening, mock relaxing, silent regressions |
+| **Deliverable** | Modified files only | Git commit + 1-line log | **Solution Lineage DAG**: Complete provenance graph (`LINEAGE.md`) proving why solution won |
+
+---
+
+## 🧭 The Generational Evidence Loop
+
+```
+       ┌───────────────────────────────┐
+       │   Human defines DIRECTION.md  │
+       │   (Goal, Staged Signal, Budget)│
+       └──────────────┬────────────────┘
+                      │
+                      ▼
+       ┌───────────────────────────────┐
+       │ 0. Inspect CONSTRAINTS.md &   │
+       │    Gems for Active Boundaries │
+       └──────────────┬────────────────┘
+                      │
+                      ▼
+       ┌───────────────────────────────┐
+       │ 3. Deep Innovation Gate (DIG) │
+       │    (Pre-Register Contract)    │
+       └──────────────┬────────────────┘
+                      │
+                      ▼
+       ┌───────────────────────────────┐
+       │ 4. Staged Verification Ladder │
+       │    Smoke -> Scout -> Complete │
+       └──────────────┬────────────────┘
+                      │
+            Improved? ├─────────────────────────┐
+           (YES)      │                         │ (NO)
+                      ▼                         ▼
+         ┌─────────────────────────┐ ┌─────────────────────────┐
+         │ 5. Keep & Advance       │ │ 5. Extract Negative/    │
+         │    Confirmed Frontier   │ │    Diagnostic Constraint │
+         └────────────┬────────────┘ └───────────┬─────────────┘
+                      │                         │
+                      │                         ▼
+                      │              ┌─────────────────────────┐
+                      │              │ Update CONSTRAINTS.md   │
+                      │              └───────────┬─────────────┘
+                      │                         │
+                      └────────────┬────────────┘
+                                   │
+                                   ▼
+         ┌─────────────────────────────────────────────────────┐
+         │ 6. Append Typed Finding to JOURNAL.md               │
+         │    (Commit, Signal, Stage, Intent, Decision, Why)   │
+         └─────────────────────────┬───────────────────────────┘
+                                   │
+                                   ▼
+         ┌─────────────────────────────────────────────────────┐
+         │ 7. Gems Memory Compression & Lineage DAG Generation │
+         │    (Every 5 loops, distill into .autoevolve/gems.md)│
+         └─────────────────────────┬───────────────────────────┘
+                                   │
+                                   ▼
+         ┌─────────────────────────────────────────────────────┐
+         │ 8. Repeat (Safe up to 50 loops with active Gems)    │
+         └─────────────────────────────────────────────────────┘
+```
 
 ---
 
