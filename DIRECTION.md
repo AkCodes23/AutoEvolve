@@ -3,17 +3,27 @@
 ## Objective
 <!-- What are we trying to achieve? (e.g. Optimize cache lookup latency to <1ms, Fix payment retry bug) -->
 
-## Signal
-<!-- Command to verify correctness or measure performance. Must be frozen during experiment. -->
-```bash
-pytest tests/ -v
-```
+## Signal Stages (Evidence Stage Ladder)
+<!-- Multi-stage evaluation ladder. Cheapest first; scout unlocks complete; only complete warrants keep. -->
+- **Smoke** (`<1s`): Static checks / lint / compile
+  ```bash
+  ruff check .
+  ```
+- **Scout** (`<5s`): Fast targeted probe / scenario unit test
+  ```bash
+  pytest tests/unit/ -q
+  ```
+- **Complete** (`<30s`): Full regression test suite + soft gates
+  ```bash
+  pytest tests/ -v
+  ```
 
 ## Hard Gates (must pass: binary)
 <!-- Canonical deterministic constraints. Any failure -> abort or revert step. -->
 - Zero regression on existing test suite
 - No external dependencies beyond Python standard library
 - Maintain backward compatibility for public API contracts
+- No assertion relaxing or mock tampering
 
 ## Soft Gates (should meet: proportional)
 <!-- Continuous performance and quality targets. Regressions scale score down without immediate failure. -->
@@ -27,5 +37,6 @@ pytest tests/ -v
 - <!-- Token ceiling: e.g. max 50k tokens per loop -->
 
 ## Budget
-- Max iterations: 10
+- Max iterations: 10 (or 50 with Gems memory compression)
 - Max diff size per step: 50 lines
+
