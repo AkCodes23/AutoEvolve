@@ -15,6 +15,22 @@
 
 ---
 
+## ⚡ 10-Second Quickstart
+
+Install AutoEvolve directly into any local repository with a single command:
+
+```bash
+# macOS / Linux (Auto-detects Cursor, Claude Code, Copilot, Cline, etc.)
+curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | bash
+
+# Windows PowerShell
+iwr -useb https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.ps1 | iex
+```
+
+*Or manually copy [`AGENTS.md`](./AGENTS.md) or your IDE's adapter from [`adapters/`](./adapters) into your repository root.*
+
+---
+
 ## 📖 Developer Walkthrough
 
 ### 1. Human defines the goal in `DIRECTION.md`:
@@ -37,6 +53,22 @@ pytest tests/perf/test_search.py -q
 2026-08-16T11:00Z | e4f1a2 | p99: 142ms -> 88ms  | KEEP   | Added compound index on (tenant_id, created_at)
 2026-08-16T11:02Z | ------ | p99: 88ms  -> 110ms | REVERT | In-memory cache caused lock contention across 50 threads
 2026-08-16T11:04Z | a8c9d1 | p99: 88ms  -> 42ms  | KEEP   | Hoisted compiled regex outside search loop (Target hit!)
+```
+
+---
+
+## 📂 File Ecosystem & Artifact Architecture
+
+AutoEvolve operates transparently through clear, human-readable markdown files in your repository:
+
+```text
+your-project/
+├── AGENTS.md / .cursorrules   <-- The Mindset (Injects protocol into your AI assistant)
+├── DIRECTION.md               <-- Human sets Objective, Frozen Signal & Budget
+├── CONSTRAINTS.md             <-- AI logs negative knowledge / blocked dead-ends
+├── JOURNAL.md                 <-- AI logs keep/revert decisions with metric deltas
+├── LINEAGE.md                 <-- AI renders solution provenance DAG (Mermaid)
+└── .autoevolve/gems.md        <-- Compressed architectural lessons (<=500 tokens)
 ```
 
 ---
@@ -168,6 +200,28 @@ Stop at the first rung that holds:
 | **JetBrains AI / Junie** | [`adapters/jetbrains.md`](./adapters/jetbrains.md) | `.jetbrains/ai-instructions.md` | `.idea/` |
 | **Sourcegraph Cody** | [`adapters/cody.md`](./adapters/cody.md) | `.cody/instructions.md` | `.cody/` |
 | **OpenHands & SWE-Agent** | [`adapters/openhands.md`](./adapters/openhands.md) | `.openhands/instructions.md` | `.openhands/` |
+
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### Q: Does AutoEvolve consume extra API tokens?
+**No.** In fact, AutoEvolve typically reduces net token consumption by up to 40% across multi-turn sessions. Standard agents continuously accumulate noisy command output and repeat failed attempts until the context window is saturated. AutoEvolve's **Gems Memory Compression** distills long sessions into concise summaries ($\le 500$ tokens) and archives historical diffs to `LINEAGE.md`.
+
+### Q: Does it require any background daemons, Python packages, or Docker?
+**Zero dependencies.** AutoEvolve is 100% pure prompt architecture and markdown protocols. It requires no pip installations, no local servers, and no background processes. It works inside whatever editor, terminal, or LLM you already use.
+
+### Q: How does it prevent agents from getting stuck in infinite loops?
+AutoEvolve enforces **graduated failure escalation**:
+- **1st failure**: Immediate isolated worktree revert + root cause extraction to `CONSTRAINTS.md`.
+- **2nd failure**: Mandatory orthogonal pivot to a different surface or mechanism.
+- **3+ failures**: The agent questions the foundational architecture and halts to request human guidance rather than thrashing.
+
+### Q: Does AutoEvolve work with any programming language?
+**Yes.** AutoEvolve is language-agnostic. Whether you write Rust, TypeScript, Python, Go, C++, or Java, the protocol applies identical rigor to blast radius mapping, invariant verification, non-blocking concurrency, and empirical evidence gathering.
+
+### Q: How do I define my own optimization goals?
+Simply create or update `DIRECTION.md` in your project root with your target objective, a frozen verification command (e.g. `pytest`, `cargo test`, `npm test`), and a maximum iteration budget.
 
 ---
 
