@@ -1,42 +1,27 @@
-# Direction
+# AutoEvolve Direction & Verification Protocols
 
 ## Objective
-<!-- What are we trying to achieve? (e.g. Optimize cache lookup latency to <1ms, Fix payment retry bug) -->
+Define architectural evolution goals, performance targets, and hard verification constraints.
 
-## Signal Stages (Evidence Stage Ladder)
-<!-- Multi-stage evaluation ladder. Cheapest first; scout unlocks complete; only complete warrants keep. -->
-- **Smoke** (`<1s`): Static checks / lint / compile
-  ```bash
-  ruff check .
-  ```
-- **Scout** (`<5s`): Fast targeted probe / scenario unit test
-  ```bash
-  pytest tests/unit/ -q
-  ```
-- **Complete** (`<30s`): Full regression test suite + soft gates
-  ```bash
-  pytest tests/ -v
-  ```
+## Signal
+- Primary Signal: Invariant pass rate + p99 latency reduction + memory RSS efficiency.
+- Secondary Signal: AST cyclomatic complexity, test coverage integrity, zero assertion degradation.
 
 ## Hard Gates (must pass: binary)
-<!-- Canonical deterministic constraints. Any failure -> abort or revert step. -->
-- Zero regression on existing test suite
-- No external dependencies beyond Python standard library
-- Maintain backward compatibility for public API contracts
-- No assertion relaxing or mock tampering
+1. **Zero Test Regressions**: All existing unit, integration, and invariant tests must pass 100%.
+2. **Adversarial Skeptic Audit**: Zero assertion weakening (`assert True`), zero empty test bodies, zero hash tampering.
+3. **SMT Safety Invariants**: Zero unbounded global state mutations, correct lock pairing, zero unhandled recursion.
+4. **Failure Constraint Adherence**: Candidate diff must not repeat patterns listed in `CONSTRAINTS.md`.
 
 ## Soft Gates (should meet: proportional)
-<!-- Continuous performance and quality targets. Regressions scale score down without immediate failure. -->
-- <!-- Latency target: e.g. p95 latency <= 200ms -->
-- <!-- Memory ceiling: e.g. peak memory <= 15MB -->
-- <!-- Diff budget: e.g. modified LOC <= reference * 1.5 -->
+- Latency improvement >= 15% on target benchmark.
+- Memory RSS reduction or zero allocation overhead in hot paths.
+- Code brevity: minimal diff complexity, no dead code.
 
 ## Resource Quotas
-<!-- Proactive exhaustion limits. Pause or route around rather than burning retry loops. -->
-- <!-- Rate limit: e.g. max 60 req/min (pause until window reset) -->
-- <!-- Token ceiling: e.g. max 50k tokens per loop -->
+- Maximum wall-clock time per test stage: smoke (<1s), scout (<5s), complete (<30s).
+- Maximum memory RSS footprint: <= 512KB for stream joins, <= 2MB total heap.
 
 ## Budget
-- Max iterations: 10 (or 50 with Gems memory compression)
-- Max diff size per step: 50 lines
-
+- Active context memory: <= 500 tokens for `.autoevolve/gems.md`.
+- Exploration budget: 70% exploitation of proven families, 30% orthogonal coordinates.
