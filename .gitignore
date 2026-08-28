@@ -24,3 +24,7 @@ evals/
 # The verification wrapper's scratch log. It lands in the working tree of whatever repo the loop
 # runs in, and `git status` there is part of the keep-or-revert signal.
 .autoevolve_last_run.log
+
+# Git worktrees
+.worktrees/
+worktrees/
