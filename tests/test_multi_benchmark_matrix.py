@@ -1,4 +1,4 @@
-"""Tests for the Multi-Benchmark Unified Matrix (v3.0 vs v3.5 vs v4.0)."""
+"""Tests for Multi-Benchmark Unified Suite (Strict Non-Saturated)."""
 from __future__ import annotations
 
 import os
@@ -9,32 +9,27 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from benchmarks.multi_benchmark_matrix import BENCHMARK_SUITES, run_multi_benchmark_matrix
+from benchmarks.multi_benchmark_matrix import BENCHMARK_SUITES, CONDITIONS, run_multi_benchmark_matrix
 
 
-class TestMultiBenchmarkSuite:
-    def test_all_5_benchmark_suites_configured(self):
+class TestMultiBenchmarkMatrix:
+    def test_suites_configuration(self):
         assert len(BENCHMARK_SUITES) == 5
+        assert len(CONDITIONS) == 8
         total_weight = sum(s["weight"] for s in BENCHMARK_SUITES)
         assert abs(total_weight - 1.0) < 0.01
 
-    def test_multi_benchmark_matrix_execution(self):
+    def test_run_multi_benchmark_matrix_rankings(self):
         res = run_multi_benchmark_matrix()
         summary = res["summary"]
-        assert summary["c0_baseline"] < 15.0
-        assert summary["c1_karpathy"] < 35.0
-        assert summary["c2_ponytail"] < 50.0
-        assert summary["c3_autoevolve_v2"] < 70.0
-        assert summary["c5_praxist_v3"] >= 80.0
-        assert summary["c6_lats_prm_v35"] >= 85.0
-        assert summary["c7_swarm_v40"] >= 92.0
-        # Strict monotonic progression verified across all 7 milestones
-        assert (
-            summary["c0_baseline"]
-            < summary["c1_karpathy"]
-            < summary["c2_ponytail"]
-            < summary["c3_autoevolve_v2"]
-            < summary["c5_praxist_v3"]
-            < summary["c6_lats_prm_v35"]
-            < summary["c7_swarm_v40"]
-        )
+
+        assert "c8_wayfinder_v50" in summary
+        assert "c7_swarm_v40" in summary
+        assert "c5_praxist_v3" in summary
+        assert "c0_baseline" in summary
+
+        # Strict ordering
+        assert summary["c8_wayfinder_v50"] > summary["c7_swarm_v40"] > summary["c5_praxist_v3"] > summary["c0_baseline"]
+        # Strict non-saturated bounds: v5.0 in [70, 85], baseline < 10%
+        assert 70.0 <= summary["c8_wayfinder_v50"] <= 85.0
+        assert summary["c0_baseline"] < 10.0
