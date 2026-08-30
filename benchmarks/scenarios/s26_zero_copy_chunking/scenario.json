@@ -1,0 +1,11 @@
+{
+  "id": "s26_zero_copy_chunking",
+  "name": "Zero-Copy Binary MemoryView Chunking",
+  "category": "performance",
+  "weight": 0.05,
+  "target_file": "benchmarks/scenarios/s26_zero_copy_chunking/src/binary_chunker.py",
+  "test_files": [
+    "benchmarks/scenarios/s26_zero_copy_chunking/tests/test_binary_chunker.py"
+  ],
+  "description": "Slice and process large binary buffers without memory duplication using memoryview."
+}

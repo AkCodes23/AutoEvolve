@@ -1,0 +1,50 @@
+{
+  "scenario_id": "s3_yagni_minimalism",
+  "scenario_name": "Minimalism Ladder & YAGNI",
+  "condition": "condition0_baseline",
+  "category": "yagni_minimalism",
+  "passed": false,
+  "score": 0.0,
+  "weight": 0.15,
+  "duration_seconds": 0.829,
+  "metrics": {
+    "functional_pass": true,
+    "duration_s": 0.829,
+    "executable_loc": 80,
+    "classes_count": 6,
+    "brevity_score": 0.0
+  },
+  "patch_diff": "--- a/src/cache/ttl_lru.py\n+++ b/src/cache/ttl_lru.py\n@@ -1,29 +1,103 @@\n-\"\"\"Thread-safe in-memory cache with TTL expiration and LRU capacity eviction.\"\"\"\n+\"\"\"Over-engineered bloated implementation for Scenario 3 (Adversarial test for YAGNI).\"\"\"\n from __future__ import annotations\n+\n+import abc\n+import collections\n+import threading\n+import time\n+from typing import Any, Generic, Hashable, Optional, TypeVar\n+\n+K = TypeVar(\"K\", bound=Hashable)\n+V = TypeVar(\"V\")\n+\n+\n+class AbstractCacheEntry(abc.ABC, Generic[V]):\n+    @abc.abstractmethod\n+    def get_value(self) -> V:\n+        pass\n+\n+    @abc.abstractmethod\n+    def is_expired(self, current_time: float) -> bool:\n+        pass\n+\n+\n+class ConcreteCacheEntry(AbstractCacheEntry[V]):\n+    def __init__(self, value: V, expire_at: float):\n+        self._value = value\n+        self._expire_at = expire_at\n+\n+    def get_value(self) -> V:\n+        return self._value\n+\n+    def is_expired(self, current_time: float) -> bool:\n+        return current_time > self._expire_at\n+\n+\n+class CacheEntryFactory:\n+    @staticmethod\n+    def create_entry(value: Any, ttl: float) -> ConcreteCacheEntry:\n+        return ConcreteCacheEntry(value, time.monotonic() + ttl)\n+\n+\n+class AbstractEvictionPolicy(abc.ABC):\n+    @abc.abstractmethod\n+    def evict_next(self, storage: dict) -> None:\n+        pass\n+\n+\n+class LRUEvictionPolicy(AbstractEvictionPolicy):\n+    def evict_next(self, storage: collections.OrderedDict) -> None:\n+        if storage:\n+            storage.popitem(last=False)\n \n \n class TTLCache:\n-    \"\"\"Thread-safe LRU Cache with Time-To-Live expiration.\"\"\"\n+    \"\"\"Over-abstracted cache with 5 classes and 100+ lines.\"\"\"\n \n     def __init__(self, maxsize: int = 128, ttl_seconds: float = 60.0):\n-        raise NotImplementedError(\"TTLCache.__init__ is not implemented\")\n+        if maxsize <= 0:\n+            raise ValueError(\"maxsize must be positive\")\n+        if ttl_seconds <= 0:\n+            raise ValueError(\"ttl_seconds must be positive\")\n+        self._maxsize = maxsize\n+        self._ttl = ttl_seconds\n+        self._storage: collections.OrderedDict[Any, ConcreteCacheEntry] = collections.OrderedDict()\n+        self._eviction_policy = LRUEvictionPolicy()\n+        self._factory = CacheEntryFactory()\n+        self._lock = threading.RLock()\n \n-    def get(self, key, default=None):\n-        \"\"\"Retrieve a value by key if present and not expired.\"\"\"\n-        raise NotImplementedError(\"TTLCache.get is not implemented\")\n+    def get(self, key: Any, default: Optional[Any] = None) -> Any:\n+        with self._lock:\n+            if key not in self._storage:\n+                return default\n+            entry = self._storage[key]\n+            if entry.is_expired(time.monotonic()):\n+                del self._storage[key]\n+                return default\n+            self._storage.move_to_end(key)\n+            return entry.get_value()\n \n-    def set(self, key, value) -> None:\n-        \"\"\"Store a key-value pair with TTL expiration.\"\"\"\n-        raise NotImplementedError(\"TTLCache.set is not implemented\")\n+    def set(self, key: Any, value: Any) -> None:\n+        with self._lock:\n+            entry = self._factory.create_entry(value, self._ttl)\n+            if key in self._storage:\n+                self._storage.move_to_end(key)\n+            elif len(self._storage) >= self._maxsize:\n+                self._eviction_policy.evict_next(self._storage)\n+            self._storage[key] = entry\n \n-    def delete(self, key) -> bool:\n-        \"\"\"Delete a key from the cache. Return True if present, False otherwise.\"\"\"\n-        raise NotImplementedError(\"TTLCache.delete is not implemented\")\n+    def delete(self, key: Any) -> bool:\n+        with self._lock:\n+            return bool(self._storage.pop(key, None) is not None)\n \n     def clear(self) -> None:\n-        \"\"\"Remove all items from the cache.\"\"\"\n-        raise NotImplementedError(\"TTLCache.clear is not implemented\")\n+        with self._lock:\n+            self._storage.clear()\n \n     def __len__(self) -> int:\n-        \"\"\"Return the number of unexpired items in the cache.\"\"\"\n-        raise NotImplementedError(\"TTLCache.__len__ is not implemented\")\n+        with self._lock:\n+            now = time.monotonic()\n+            expired = [k for k, entry in self._storage.items() if entry.is_expired(now)]\n+            for k in expired:\n+                del self._storage[k]\n+            return len(self._storage)\n",
+  "execution_trace": [
+    "Initialized sandbox for condition0_baseline on s3_yagni_minimalism",
+    "Generated 5-class bloated OOP hierarchy (104 LoC)",
+    "Pytest exit code: 0 (PASS) in 0.829s",
+    "Evaluated score: 0.0% (Passed: False)"
+  ],
+  "details": {
+    "test_exit_code": 0,
+    "test_passed": true,
+    "test_duration_seconds": 0.828961200080812,
+    "raw_output_tokens": 24,
+    "yagni": {
+      "file_exists": true,
+      "executable_loc": 80,
+      "golden_loc": 45,
+      "classes_count": 6,
+      "functions_count": 14,
+      "ast_nodes_count": 582,
+      "imports": [
+        "abc",
+        "collections",
+        "threading",
+        "__future__",
+        "typing",
+        "time"
+      ],
+      "non_stdlib_imports": [],
+      "is_stdlib_pure": true,
+      "brevity_score": 0.0,
+      "yagni_pass": true
+    }
+  }
+}

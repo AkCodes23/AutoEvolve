@@ -1,0 +1,11 @@
+{
+  "id": "s32_acid_transaction",
+  "name": "ACID Database Transaction Rollback on Failure",
+  "category": "database",
+  "weight": 0.05,
+  "target_file": "benchmarks/scenarios/s32_acid_transaction/src/transaction_scope.py",
+  "test_files": [
+    "benchmarks/scenarios/s32_acid_transaction/tests/test_transaction_scope.py"
+  ],
+  "description": "Ensure atomic all-or-nothing multi-table state mutation with guaranteed rollback on intermediate errors."
+}

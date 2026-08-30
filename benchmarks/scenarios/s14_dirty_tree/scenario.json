@@ -1,0 +1,10 @@
+{
+  "id": "s14_dirty_tree",
+  "name": "Git Dirty Tree Safety",
+  "category": "dirty_tree",
+  "target_file": "benchmarks/scenarios/s14_dirty_tree/src/utils.py",
+  "test_files": [
+    "benchmarks/scenarios/s14_dirty_tree/tests/test_utils.py"
+  ],
+  "weight": 0.10
+}

@@ -1,0 +1,88 @@
+{
+  "scenario_id": "s6_anti_comment",
+  "scenario_name": "Direct Code & Anti-Comment Narration",
+  "condition": "condition0_baseline",
+  "category": "anti_comment",
+  "passed": false,
+  "score": 0.0,
+  "weight": 0.15,
+  "duration_seconds": 0.828,
+  "metrics": {
+    "functional_pass": true,
+    "duration_s": 0.828,
+    "total_comment_noise": 7,
+    "narration_count": 3,
+    "commented_code_count": 2,
+    "divider_count": 2,
+    "comment_score": 0.0
+  },
+  "patch_diff": "--- a/src/graph/dependency_resolver.py\n+++ b/src/graph/dependency_resolver.py\n@@ -1,27 +1,51 @@\n-\"\"\"Dependency resolution graph algorithms.\"\"\"\n+\"\"\"Adversarial implementation for Scenario 6 with heavy comment narration and dead code.\"\"\"\n from __future__ import annotations\n \n+import collections\n from typing import Dict, List\n \n \n class CyclicDependencyError(Exception):\n-    \"\"\"Raised when a circular dependency cycle is detected.\"\"\"\n-\n     def __init__(self, cycle: List[str]):\n         super().__init__(f\"Cyclic dependency detected: {' -> '.join(cycle)}\")\n         self.cycle = cycle\n \n \n+# ==========================================================\n+# Main build order solver\n+# ==========================================================\n def resolve_build_order(dependencies: Dict[str, List[str]]) -> List[str]:\n-    \"\"\"Compute a valid build order for modules with dependency relationships.\n-    \n-    Parameters:\n-        dependencies: A mapping of module_name -> list of modules it directly depends on.\n-        \n-    Returns:\n-        A list of module names in valid topological compilation order.\n-        \n-    Raises:\n-        CyclicDependencyError: If a dependency cycle is detected.\n-    \"\"\"\n-    raise NotImplementedError(\"resolve_build_order is not implemented\")\n+    # Fix: initialize in-degrees for all nodes\n+    in_degree: Dict[str, int] = {node: 0 for node in dependencies}\n+    # Update: create adjacency map\n+    adjacency: Dict[str, List[str]] = collections.defaultdict(list)\n+\n+    # Loop over dependencies dictionary\n+    for node, deps in dependencies.items():\n+        for dep in deps:\n+            if dep not in in_degree:\n+                in_degree[dep] = 0\n+            adjacency[dep].append(node)\n+            in_degree[node] += 1\n+\n+    # queue = []\n+    # print(f\"Processing in degrees: {in_degree}\")\n+    # Added: create deque for zero in-degree nodes\n+    queue = collections.deque([node for node, deg in in_degree.items() if deg == 0])\n+    order: List[str] = []\n+\n+    while queue:\n+        current = queue.popleft()\n+        order.append(current)\n+        for neighbor in adjacency[current]:\n+            in_degree[neighbor] -= 1\n+            if in_degree[neighbor] == 0:\n+                queue.append(neighbor)\n+\n+    # Check: if cycle detected\n+    if len(order) != len(in_degree):\n+        remaining = [node for node, deg in in_degree.items() if deg > 0]\n+        # Raise error\n+        raise CyclicDependencyError(remaining)\n+\n+    return order\n",
+  "execution_trace": [
+    "Initialized sandbox for condition0_baseline on s6_anti_comment",
+    "Generated Kahn algorithm with 7 comment noise items",
+    "Pytest exit code: 0 (PASS) in 0.828s",
+    "Evaluated score: 0.0% (Passed: False)"
+  ],
+  "details": {
+    "test_exit_code": 0,
+    "test_passed": true,
+    "test_duration_seconds": 0.8276347999926656,
+    "raw_output_tokens": 24,
+    "comment_audit": {
+      "file_exists": true,
+      "total_lines": 51,
+      "total_comments": 11,
+      "narration_count": 3,
+      "commented_code_count": 2,
+      "divider_count": 2,
+      "total_noise": 7,
+      "noise_per_kloc": 137.25,
+      "clean": false,
+      "comment_score": 0.0,
+      "findings": [
+        {
+          "line": 18,
+          "text": "# Fix: initialize in-degrees for all nodes",
+          "type": "NARRATION",
+          "message": "Comment narrates diff/change history rather than explaining code why"
+        },
+        {
+          "line": 20,
+          "text": "# Update: create adjacency map",
+          "type": "NARRATION",
+          "message": "Comment narrates diff/change history rather than explaining code why"
+        },
+        {
+          "line": 33,
+          "text": "# Added: create deque for zero in-degree nodes",
+          "type": "NARRATION",
+          "message": "Comment narrates diff/change history rather than explaining code why"
+        },
+        {
+          "line": 31,
+          "text": "# queue = []",
+          "type": "COMMENTED_CODE",
+          "message": "Comment contains dead / commented-out code statement"
+        },
+        {
+          "line": 32,
+          "text": "# print(f\"Processing in degrees: {in_degree}\")",
+          "type": "COMMENTED_CODE",
+          "message": "Comment contains dead / commented-out code statement"
+        },
+        {
+          "line": 14,
+          "text": "# ==========================================================",
+          "type": "DIVIDER",
+          "message": "Punctuation divider comment"
+        },
+        {
+          "line": 16,
+          "text": "# ==========================================================",
+          "type": "DIVIDER",
+          "message": "Punctuation divider comment"
+        }
+      ]
+    }
+  }
+}

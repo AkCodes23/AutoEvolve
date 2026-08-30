@@ -1,0 +1,11 @@
+{
+  "id": "s19_schema_dual_write",
+  "name": "Database Schema Transition & Dual-Write Invariants",
+  "category": "backward_compatibility",
+  "weight": 0.08,
+  "target_file": "benchmarks/scenarios/s19_schema_dual_write/src/user_repository.py",
+  "test_files": [
+    "benchmarks/scenarios/s19_schema_dual_write/tests/test_user_repository.py"
+  ],
+  "description": "Ensure zero-downtime field transition by supporting dual-write and backward-compatible reads."
+}

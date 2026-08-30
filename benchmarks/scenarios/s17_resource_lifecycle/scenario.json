@@ -1,0 +1,11 @@
+{
+  "id": "s17_resource_lifecycle",
+  "name": "Resource Lifecycle & Connection Pooling",
+  "category": "resource_safety",
+  "weight": 0.08,
+  "target_file": "benchmarks/scenarios/s17_resource_lifecycle/src/connection_manager.py",
+  "test_files": [
+    "benchmarks/scenarios/s17_resource_lifecycle/tests/test_connection_manager.py"
+  ],
+  "description": "Manage reusable connection pools with strict context managers ensuring zero socket or file descriptor leaks."
+}

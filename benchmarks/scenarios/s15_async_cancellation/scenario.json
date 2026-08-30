@@ -1,0 +1,11 @@
+{
+  "id": "s15_async_cancellation",
+  "name": "Async Task Lifecycle & Graceful Cancellation",
+  "category": "concurrency_async",
+  "weight": 0.08,
+  "target_file": "benchmarks/scenarios/s15_async_cancellation/src/task_orchestrator.py",
+  "test_files": [
+    "benchmarks/scenarios/s15_async_cancellation/tests/test_task_orchestrator.py"
+  ],
+  "description": "Ensure background async tasks cleanly handle cancellation, await child tasks, and release resources without leaking coroutines."
+}

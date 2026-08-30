@@ -1,0 +1,11 @@
+{
+  "id": "s20_micro_bugfix",
+  "name": "Micro Bugfix & Prompt Token Efficiency",
+  "category": "prompt_efficiency",
+  "weight": 0.08,
+  "target_file": "benchmarks/scenarios/s20_micro_bugfix/src/math_utils.py",
+  "test_files": [
+    "benchmarks/scenarios/s20_micro_bugfix/tests/test_math_utils.py"
+  ],
+  "description": "Fix a 1-character typo in a 4-line function while evaluating token footprint and overhead."
+}

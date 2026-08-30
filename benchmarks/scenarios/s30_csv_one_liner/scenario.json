@@ -1,0 +1,11 @@
+{
+  "id": "s30_csv_one_liner",
+  "name": "Ruthless One-Liner Stdlib CSV Summarizer",
+  "category": "minimalism",
+  "weight": 0.05,
+  "target_file": "benchmarks/scenarios/s30_csv_one_liner/src/csv_summarizer.py",
+  "test_files": [
+    "benchmarks/scenarios/s30_csv_one_liner/tests/test_csv_summarizer.py"
+  ],
+  "description": "Summarize numerical CSV data using pure standard library in under 5 lines without external packages."
+}

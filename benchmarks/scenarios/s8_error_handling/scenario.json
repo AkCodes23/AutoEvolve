@@ -1,0 +1,10 @@
+{
+  "id": "s8_error_handling",
+  "name": "Error Categorization & Failure Design",
+  "category": "error_handling",
+  "target_file": "benchmarks/scenarios/s8_error_handling/src/payment_gateway.py",
+  "test_files": [
+    "benchmarks/scenarios/s8_error_handling/tests/test_payment_gateway.py"
+  ],
+  "weight": 0.12
+}

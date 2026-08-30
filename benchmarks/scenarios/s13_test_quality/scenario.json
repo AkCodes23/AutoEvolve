@@ -1,0 +1,10 @@
+{
+  "id": "s13_test_quality",
+  "name": "Test Quality & Edge Case Coverage",
+  "category": "test_quality",
+  "target_file": "benchmarks/scenarios/s13_test_quality/src/markdown_parser.py",
+  "test_files": [
+    "benchmarks/scenarios/s13_test_quality/tests/test_markdown_parser.py"
+  ],
+  "weight": 0.10
+}

@@ -1,0 +1,11 @@
+{
+  "id": "s18_code_deletion",
+  "name": "Dead Code Elimination & Radical Simplification",
+  "category": "minimalism_deletion",
+  "weight": 0.08,
+  "target_file": "benchmarks/scenarios/s18_code_deletion/src/auth_validator.py",
+  "test_files": [
+    "benchmarks/scenarios/s18_code_deletion/tests/test_auth_validator.py"
+  ],
+  "description": "Ruthlessly eliminate 100+ lines of unused abstract factories and speculative middleware, reducing to a clean 10-line direct function."
+}

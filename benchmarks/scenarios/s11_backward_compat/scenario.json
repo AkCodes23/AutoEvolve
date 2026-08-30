@@ -1,0 +1,10 @@
+{
+  "id": "s11_backward_compat",
+  "name": "Backward Compatibility Preservation",
+  "category": "backward_compat",
+  "target_file": "benchmarks/scenarios/s11_backward_compat/src/legacy_formatter.py",
+  "test_files": [
+    "benchmarks/scenarios/s11_backward_compat/tests/test_legacy_formatter.py"
+  ],
+  "weight": 0.12
+}

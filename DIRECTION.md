@@ -1,7 +1,25 @@
-# AutoEvolve Direction & Verification Protocols
+# AutoEvolve Direction & Wayfinding Protocols
 
 ## Objective
-Define architectural evolution goals, performance targets, and hard verification constraints.
+Define architectural evolution goals, wayfinding decision frontiers, and hard verification constraints.
+
+## Destination
+Optimize system performance and reliability through neurosymbolic wayfinding and evolutionary mutations.
+
+## Active Frontier
+- [ ] [F-01] Design and verify AST invariant fuzzer (mode: mutate, blocked_by: [], claim: none, signal: pytest tests/test_v35_tree_search_and_prm.py)
+- [ ] [F-02] SMT concurrency safety verification (mode: mutate, blocked_by: [F-01], claim: none, signal: pytest tests/test_v40_neurosymbolic_swarm.py)
+
+## Fog of War
+- Distributed cross-node worktree synchronization protocol (blocked on F-02)
+- Multi-provider real-time LLM cost auctioneer
+
+## Out of Scope
+- No runtime daemons or external service dependencies
+- No breaking changes to existing 12 IDE adapter contracts
+
+## Decisions So Far
+- [F-00 Mindset Synchronization](file:///LINEAGE.md#F-00): Upgraded to AutoEvolve v5.0 with full Wayfinding & Fog of War decomposition
 
 ## Signal
 - Primary Signal: Invariant pass rate + p99 latency reduction + memory RSS efficiency.

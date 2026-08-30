@@ -1,0 +1,11 @@
+{
+  "id": "s23_idempotent_webhook",
+  "name": "Idempotent Webhook Payment Processing",
+  "category": "distributed_systems",
+  "weight": 0.05,
+  "target_file": "benchmarks/scenarios/s23_idempotent_webhook/src/webhook_handler.py",
+  "test_files": [
+    "benchmarks/scenarios/s23_idempotent_webhook/tests/test_webhook_handler.py"
+  ],
+  "description": "Process incoming payment webhooks idempotently using unique deduplication keys preventing double credits."
+}
