@@ -1,0 +1,11 @@
+{
+  "id": "s29_deprecation_warning",
+  "name": "Graceful Deprecation with Warning Lifecycle",
+  "category": "api_design",
+  "weight": 0.05,
+  "target_file": "benchmarks/scenarios/s29_deprecation_warning/src/deprecated_api.py",
+  "test_files": [
+    "benchmarks/scenarios/s29_deprecation_warning/tests/test_deprecated_api.py"
+  ],
+  "description": "Deprecate legacy API functions by emitting DeprecationWarning while routing calls to the new interface without breaking callers."
+}

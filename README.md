@@ -73,50 +73,49 @@ your-project/
 
 ---
 
-## 🧭 The Generational Evidence Loop
+## 🧭 The Generational Evidence & Wayfinding Loop
 
-```
-       ┌───────────────────────────────┐
-       │   Human defines DIRECTION.md  │
-       │   (Goal, Staged Signal, Budget)│
-       └──────────────┬────────────────┘
-                      │
-                      ▼
-       ┌───────────────────────────────┐
-       │ 1. EXPLORE: CONSTRAINTS.md,   │
-       │    Gems & LATS Tree Search    │
-       └──────────────┬────────────────┘
-                      │
-                      ▼
-       ┌───────────────────────────────┐
-       │ 2. CONTRACT: Deep Innovation  │
-       │    Gate (DIG) Pre-Register    │
-       └──────────────┬────────────────┘
-                      │
-                      ▼
-       ┌───────────────────────────────┐
-       │ 3. MUTATE: Poka-Yoke Edit in  │
-       │    Isolated Git Worktree      │
-       └──────────────┬────────────────┘
-                      │
-                      ▼
-       ┌───────────────────────────────┐
-       │ 4. VERIFY: Evidence Ladder    │
-       │    Smoke -> Scout -> Complete │
-       └──────────────┬────────────────┘
-                      │
+```text
+       ┌───────────────────────────────────────────────────────────┐
+       │   Human defines DIRECTION.md                              │
+       │   (Destination, Frontier, Fog of War, Out of Scope, Gates)│
+       └─────────────────────────────┬─────────────────────────────┘
+                                     │
+                                     ▼
+       ┌───────────────────────────────────────────────────────────┐
+       │ 0. WAYFIND & MAP: Fog of War Decomposition & Modalities   │
+       │    (grilling: HITL | prototype: spike | research | mutate)│
+       └─────────────────────────────┬─────────────────────────────┘
+                                     │
+                                     ▼
+       ┌───────────────────────────────────────────────────────────┐
+       │ 1. EXPLORE: Active Frontier, CONSTRAINTS.md & LATS Tree   │
+       └─────────────────────────────┬─────────────────────────────┘
+                                     │
+                                     ▼
+       ┌───────────────────────────────────────────────────────────┐
+       │ 2. CONTRACT: Deep Innovation Gate (DIG) Pre-Register      │
+       │    (Claim unblocked frontier node, state anti-goals & PRM)│
+       └─────────────────────────────┬─────────────────────────────┘
+                                     │
+                                     ▼
+       ┌───────────────────────────────────────────────────────────┐
+       │ 3. MUTATE: Poka-Yoke Edit in Isolated Git Worktree        │
+       └─────────────────────────────┬─────────────────────────────┘
+                                     │
+                                     ▼
+       ┌───────────────────────────────────────────────────────────┐
+       │ 4. VERIFY: Evidence Ladder (Smoke -> Scout -> Complete)   │
+       └─────────────────────────────┬─────────────────────────────┘
+                                     │
             Improved? ├─────────────────────────┐
            (YES)      │                         │ (NO)
                       ▼                         ▼
          ┌─────────────────────────┐ ┌─────────────────────────┐
          │ 5. Keep & Advance       │ │ 5. Extract Negative/    │
          │    Confirmed Frontier   │ │    Diagnostic Lesson    │
+         │    & Graduate Fog       │ │    to CONSTRAINTS.md    │
          └────────────┬────────────┘ └───────────┬─────────────┘
-                      │                         │
-                      │                         ▼
-                      │              ┌─────────────────────────┐
-                      │              │ Update CONSTRAINTS.md   │
-                      │              └───────────┬─────────────┘
                       │                         │
                       └────────────┬────────────┘
                                    │
@@ -127,7 +126,7 @@ your-project/
                                    │
                                    ▼
          ┌─────────────────────────────────────────────────────┐
-         │ 7. Gems Memory Compression (every 5 loops, <=500tok)│
+         │ 7. Gems Memory Compression (Index vs Store, <=500tok)│
          └─────────────────────────┬───────────────────────────┘
                                    │
                                    ▼
@@ -156,6 +155,8 @@ Stop at the first rung that holds:
 
 ## 🛡️ Core Engineering Invariants
 
+- **Wayfinding & Fog of War Decomposition**: Decompose ambiguous multi-session initiatives into Destination, Active Frontier, Fog of War, and Out of Scope before mutating code.
+- **Strict HITL Modality**: For requirements interrogation (`grilling`), engage the human directly; the agent must never answer its own grilling questions.
 - **Surgical Blast Radius**: Know all callers before modifying a shared signature; fix the shared contract, not just the one reporting call site.
 - **Trust Boundaries & Non-Blocking Locks**: Validate external inputs without silent coercion. Categorize errors (client vs server vs dependency), time out all I/O, and never hold locks across network calls.
 - **Subprocess Safety**: Pass array arguments (`subprocess.run(['cmd', 'arg'])`), never concatenated strings with `shell=True`. Keep commands cross-platform (PowerShell & POSIX).
@@ -170,17 +171,18 @@ Stop at the first rung that holds:
 
 ---
 
-## 🚀 Next-Gen Capabilities (v3.0 & v4.0 Mindset)
+## 🚀 Next-Gen Capabilities (v3.0 $\to$ v4.0 $\to$ v5.0)
 
-| Dimension | Legacy AI Assistants | AutoEvolve (v1/v2) | AutoEvolve v4.0 (Autonomous Swarm) |
+| Dimension | Legacy AI Assistants | AutoEvolve v3.0 / v4.0 | AutoEvolve v5.0 (Wayfinding & Swarm) |
 |---|---|---|---|
-| **Pre-Edit Governance** | Edit blindly without plan | "Smallest diff" heuristic | **Deep Innovation Gate (DIG)**: Pre-registered hypothesis, surface, intent, and anti-goals |
-| **Failed Experiments** | Repeatedly tried / forgotten | Reverted & discarded | **First-Class Failure Retention**: Extracted as active constraints into `CONSTRAINTS.md` |
+| **Phase 0 Planning** | None (Edit blindly) | Smallest diff / DIG contract | **Wayfinding Decision Maps**: Decomposes Fog of War into Destination, Frontier, Fog, Out of Scope |
+| **Exploration Modalities** | Monolithic text edit | Code mutation only | **4 Distinct Modes**: `grilling` (HITL), `prototype` (spike), `research` (AFK), `mutate` (AFK) |
+| **Failed Experiments** | Repeatedly tried / forgotten | Extracted to `CONSTRAINTS.md` | **Neurosymbolic Failure Graph**: Directed causal DAG blocking repeat dead-ends |
 | **Evaluation Depth** | Single unstructured run | Binary command test | **Multi-Stage Evidence Ladder**: `smoke` (<1s) $\to$ `scout` (<5s) $\to$ `complete` (<30s) |
-| **Multi-Branching** | Random greedy edits | Heuristic `evolve/<niche>` | **Language Agent Tree Search (LATS)**: Forks 3 orthogonal hypotheses on plateaus |
-| **Memory / Context** | Prompt bloat / context limit | Hard stop at 10 loops | **Gems Memory Compression**: Distills lessons into `.autoevolve/gems.md` (<=500 tokens) |
+| **Multi-Branching** | Random greedy edits | Heuristic worktrees | **LATS Tree Search & Swarm Islands**: SIMD, lock-free, cache-oblivious with semantic crossover |
+| **Memory / Context** | Prompt bloat / context limit | Gems compression (<=500 tokens) | **Index vs Store Architecture**: High-speed low-res map indices pointing to deep contract nodes |
+| **Concurrency Control** | Race conditions / collisions | Island isolation | **Atomic Frontier Node Claiming**: Prevents multi-agent collision across parallel worktrees |
 | **Adversarial Rigor** | Agent self-approval | Single pass metric | **Adversarial Skeptic Audit**: Red-teams for assertion weakening, mock relaxing, regressions |
-| **Deliverable** | Modified files only | Git commit + 1-line log | **Solution Lineage DAG**: Complete provenance graph (`LINEAGE.md`) proving why solution won |
 
 ---
 

@@ -1,0 +1,12 @@
+{
+  "id": "s5_speculative_rollback",
+  "name": "Speculative Experiment Rollback",
+  "category": "speculative_rollback",
+  "target_file": "benchmarks/scenarios/s5_speculative_rollback/src/numeric/fast_fourier.py",
+  "target_symbols": ["fft", "ifft", "power_spectrum"],
+  "test_files": [
+    "benchmarks/scenarios/s5_speculative_rollback/tests/test_fft_accuracy.py"
+  ],
+  "requires_git_clean": true,
+  "weight": 0.15
+}

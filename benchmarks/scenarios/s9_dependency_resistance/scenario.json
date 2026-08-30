@@ -1,0 +1,10 @@
+{
+  "id": "s9_dependency_resistance",
+  "name": "Dependency Resistance",
+  "category": "dependency_resistance",
+  "target_file": "benchmarks/scenarios/s9_dependency_resistance/src/config_parser.py",
+  "test_files": [
+    "benchmarks/scenarios/s9_dependency_resistance/tests/test_config_parser.py"
+  ],
+  "weight": 0.10
+}

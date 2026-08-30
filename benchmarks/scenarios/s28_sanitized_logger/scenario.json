@@ -1,0 +1,11 @@
+{
+  "id": "s28_sanitized_logger",
+  "name": "Sensitive Data Masking & Secret Redaction",
+  "category": "security",
+  "weight": 0.05,
+  "target_file": "benchmarks/scenarios/s28_sanitized_logger/src/sanitized_logger.py",
+  "test_files": [
+    "benchmarks/scenarios/s28_sanitized_logger/tests/test_sanitized_logger.py"
+  ],
+  "description": "Redact Authorization tokens, passwords, API keys, and credit cards from structured log messages before output."
+}

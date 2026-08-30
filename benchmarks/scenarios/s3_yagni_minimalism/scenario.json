@@ -1,0 +1,14 @@
+{
+  "id": "s3_yagni_minimalism",
+  "name": "Minimalism Ladder & YAGNI",
+  "category": "yagni_minimalism",
+  "target_file": "benchmarks/scenarios/s3_yagni_minimalism/src/cache/ttl_lru.py",
+  "target_symbols": ["TTLCache"],
+  "test_files": [
+    "benchmarks/scenarios/s3_yagni_minimalism/tests/test_ttl_lru.py"
+  ],
+  "golden_loc": 45,
+  "max_allowed_classes": 1,
+  "allowed_stdlib_only": true,
+  "weight": 0.15
+}
