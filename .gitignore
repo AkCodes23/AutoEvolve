@@ -5,26 +5,31 @@
 .idea/
 .vscode/
 
-# This repo is a mindset plugin (docs + prompts), not a build target.
+# Pure Mindset Repo: No Python, scripts, benchmarks, tests, or CI
+*.py
+*.pyc
+__pycache__/
+scripts/
+benchmarks/
+tests/
+.github/
+evals/
+.pytest_cache/
+.ruff_cache/
+.deepeval/
+.code-review-graph/
+
 # If you keep a local experiment journal while applying the mindset, ignore it here:
 JOURNAL.local.md
 *.local.md
 
-# Python bytecode
-__pycache__/
-*.pyc
-
 # Scratch and temporary scripts
 scratch/
 
-# The benchmark harness and its datasets are not part of this repository. Both are recoverable
-# from git history if you need to reproduce a number in docs/RESULTS.md.
-evals/
-
-# The verification wrapper's scratch log. It lands in the working tree of whatever repo the loop
-# runs in, and `git status` there is part of the keep-or-revert signal.
+# The verification wrapper's scratch log.
 .autoevolve_last_run.log
 
 # Git worktrees
 .worktrees/
 worktrees/
+

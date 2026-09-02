@@ -171,18 +171,19 @@ Stop at the first rung that holds:
 
 ---
 
-## 🚀 Next-Gen Capabilities (v3.0 $\to$ v4.0 $\to$ v5.0)
+## 🚀 Next-Gen Capabilities (v3.0 $\to$ v4.0 $\to$ v5.0 $\to$ v0.6)
 
-| Dimension | Legacy AI Assistants | AutoEvolve v3.0 / v4.0 | AutoEvolve v5.0 (Wayfinding & Swarm) |
-|---|---|---|---|
-| **Phase 0 Planning** | None (Edit blindly) | Smallest diff / DIG contract | **Wayfinding Decision Maps**: Decomposes Fog of War into Destination, Frontier, Fog, Out of Scope |
-| **Exploration Modalities** | Monolithic text edit | Code mutation only | **4 Distinct Modes**: `grilling` (HITL), `prototype` (spike), `research` (AFK), `mutate` (AFK) |
-| **Failed Experiments** | Repeatedly tried / forgotten | Extracted to `CONSTRAINTS.md` | **Neurosymbolic Failure Graph**: Directed causal DAG blocking repeat dead-ends |
-| **Evaluation Depth** | Single unstructured run | Binary command test | **Multi-Stage Evidence Ladder**: `smoke` (<1s) $\to$ `scout` (<5s) $\to$ `complete` (<30s) |
-| **Multi-Branching** | Random greedy edits | Heuristic worktrees | **LATS Tree Search & Swarm Islands**: SIMD, lock-free, cache-oblivious with semantic crossover |
-| **Memory / Context** | Prompt bloat / context limit | Gems compression (<=500 tokens) | **Index vs Store Architecture**: High-speed low-res map indices pointing to deep contract nodes |
-| **Concurrency Control** | Race conditions / collisions | Island isolation | **Atomic Frontier Node Claiming**: Prevents multi-agent collision across parallel worktrees |
-| **Adversarial Rigor** | Agent self-approval | Single pass metric | **Adversarial Skeptic Audit**: Red-teams for assertion weakening, mock relaxing, regressions |
+| Dimension | Legacy AI Assistants | AutoEvolve v3.0 / v4.0 | AutoEvolve v5.0 (Wayfinding & Swarm) | AutoEvolve v0.6 (Governed & Aligned) |
+|---|---|---|---|---|
+| **Phase 0 Planning** | None (Edit blindly) | Smallest diff / DIG contract | **Wayfinding Decision Maps**: Decomposes Fog of War into Destination, Frontier, Fog, Out of Scope | **Pre-Flight Feasibility Gate**: Zero compute dispatched on out-of-distribution or unfilmable prompts |
+| **Exploration Modalities** | Monolithic text edit | Code mutation only | **4 Distinct Modes**: `grilling` (HITL), `prototype` (spike), `research` (AFK), `mutate` (AFK) | **Poka-Yoke Bounded Synthesis**: Temporal/token/step ceilings bounded by construction |
+| **Failed Experiments** | Repeatedly tried / forgotten | Extracted to `CONSTRAINTS.md` | **Neurosymbolic Failure Graph**: Directed causal DAG blocking repeat dead-ends | **Active Closed-Loop Ingestion**: Live telemetry dynamically updates bandit posteriors & failure graphs |
+| **Evaluation Depth** | Single unstructured run | Binary command test | **Multi-Stage Evidence Ladder**: `smoke` (<1s) $\to$ `scout` (<5s) $\to$ `complete` (<30s) | **Honest QC & Monotonic $\Delta Q$**: Fallbacks carry non-recoverable penalties; quarantine degraded outputs |
+| **Multi-Branching** | Random greedy edits | Heuristic worktrees | **LATS Tree Search & Swarm Islands**: SIMD, lock-free, cache-oblivious with semantic crossover | **Cost-Aware Speculative Execution**: $E[\text{ROI}]$-gated execution allocating heavy compute only to viable paths |
+| **Memory / Context** | Prompt bloat / context limit | Gems compression (<=500 tokens) | **Index vs Store Architecture**: High-speed low-res map indices pointing to deep contract nodes | **Bounded Contextual Bandits**: Parameterized prompt archetypes calibrated by production feedback |
+| **Concurrency Control** | Race conditions / collisions | Island isolation | **Atomic Frontier Node Claiming**: Prevents multi-agent collision across parallel worktrees | **Blast-Radius & Call-Site Guarding**: Shared contracts verified before crossing trust boundaries |
+| **Adversarial Rigor** | Agent self-approval | Single pass metric | **Adversarial Skeptic Audit**: Red-teams for assertion weakening, mock relaxing, regressions | **Anti-Goodhart Governance**: Independent blind verification eliminating "green dashboard theater" |
+| **Objective Alignment** | Proxy completion / pedantry | Instruction following | Technical contract satisfaction | **External Human Utility**: Anti-pedantry invariant maximizing immediate value velocity and real stakes |
 
 ---
 

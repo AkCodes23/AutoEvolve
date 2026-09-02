@@ -1,1 +1,0 @@
-# Scenarios package init
