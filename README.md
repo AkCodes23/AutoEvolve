@@ -1,241 +1,172 @@
-<div align="center">
-
 # AutoEvolve
 
-**The Pure, Zero-Dependency Autonomous Software Evolution Mindset**
+A Markdown workflow for AI coding assistants: define one outcome, make a small
+change, verify it, and stop when it succeeds or reaches the agreed limits.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Zero Dependencies](https://img.shields.io/badge/Dependencies-0-brightgreen.svg)]()
-[![Pure Mindset](https://img.shields.io/badge/Architecture-Pure%20Mindset-purple.svg)]()
-[![IDE Adapters](https://img.shields.io/badge/IDE%20Adapters-12%2F12%20Synced-brightgreen.svg)]()
+AutoEvolve ships instructions and installers. It has no agent runtime, formal
+verifier, search engine, or telemetry service. Optional research techniques are
+described separately in [advanced usage](docs/advanced.md).
 
-*Evolve code autonomously through Language Agent Tree Search (LATS), Deep Innovation Gates (DIG), Neurosymbolic Knowledge Retention, and Multi-Agent Genetic Swarms.*
+## Install
 
-</div>
+Run in an existing target project directory. The defaults install `AGENTS.md`,
+`CLAUDE.md`, and starter direction, constraint, and journal files. Choose agents
+explicitly to install only what you use; selection never depends on IDE markers.
 
----
+### Linux / macOS
 
-## ⚡ 10-Second Quickstart
-
-Install AutoEvolve directly into any local repository with a single command:
-
-```bash
-# macOS / Linux (Auto-detects Cursor, Claude Code, Copilot, Cline, etc.)
-curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | bash
-
-# Windows PowerShell
-iwr -useb https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.ps1 | iex
+```sh
+curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh | sh
 ```
 
-*Or manually copy [`AGENTS.md`](./AGENTS.md) or your IDE's adapter from [`adapters/`](./adapters) into your repository root.*
+To choose integrations or a different target, download the installer first:
 
----
-
-## 📖 Developer Walkthrough
-
-### 1. Human defines the goal in `DIRECTION.md`:
-```markdown
-# Objective
-Optimize p99 latency on `/api/v1/search` without changing the JSON schema.
-
-# Frozen Signal
-pytest tests/perf/test_search.py -q
-
-# Guardrails
-- Memory peak must stay <= 15MB
-- Must pass all existing unit tests: pytest tests/unit/ -q
-- Budget: 5 loops
+```sh
+curl -fsSL https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.sh -o install-autoevolve.sh
+sh install-autoevolve.sh "/path/to/project" --agents claude,cursor
 ```
 
-### 2. AI automatically runs the loop and self-documents `JOURNAL.md`:
-```markdown
-# JOURNAL.md
-2026-08-16T11:00Z | e4f1a2 | p99: 142ms -> 88ms  | KEEP   | Added compound index on (tenant_id, created_at)
-2026-08-16T11:02Z | ------ | p99: 88ms  -> 110ms | REVERT | In-memory cache caused lock contention across 50 threads
-2026-08-16T11:04Z | a8c9d1 | p99: 88ms  -> 42ms  | KEEP   | Hoisted compiled regex outside search loop (Target hit!)
+### Windows PowerShell (5.1 or 7+)
+
+```powershell
+Invoke-RestMethod https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.ps1 | Invoke-Expression
 ```
 
----
-
-## 📂 File Ecosystem & Artifact Architecture
-
-AutoEvolve operates transparently through clear, human-readable markdown files in your repository:
-
-```text
-your-project/
-├── AGENTS.md / .cursorrules   <-- The Mindset (Injects protocol into your AI assistant)
-├── DIRECTION.md               <-- Human sets Objective, Frozen Signal & Budget
-├── CONSTRAINTS.md             <-- AI logs negative knowledge / blocked dead-ends
-├── JOURNAL.md                 <-- AI logs keep/revert decisions with metric deltas
-├── LINEAGE.md                 <-- AI renders solution provenance DAG (Mermaid)
-└── .autoevolve/gems.md        <-- Compressed architectural lessons (<=500 tokens)
+```powershell
+Invoke-RestMethod https://raw.githubusercontent.com/AkCodes23/AutoEvolve/main/install.ps1 -OutFile install-autoevolve.ps1
+.\install-autoevolve.ps1 -TargetDir "C:\path with spaces\project" -Agents claude,cursor
 ```
 
----
+Downloading a script executes repository code; inspect it first if required by your
+project. For reproducible installs, download the installer from a reviewed full
+commit SHA instead of `main`, and pass that same SHA with `--ref SHA` / `-Ref SHA`.
+`AUTOEVOLVE_REF` also accepts a full SHA. Remote installs otherwise resolve `main`
+once through the GitHub API and fetch all payloads from that immutable commit.
+If API access is rate-limited, supply a SHA or use an offline checkout.
 
-## 🧭 The Generational Evidence & Wayfinding Loop
+### Offline from a checkout
 
-```text
-       ┌───────────────────────────────────────────────────────────┐
-       │   Human defines DIRECTION.md                              │
-       │   (Destination, Frontier, Fog of War, Out of Scope, Gates)│
-       └─────────────────────────────┬─────────────────────────────┘
-                                     │
-                                     ▼
-       ┌───────────────────────────────────────────────────────────┐
-       │ 0. WAYFIND & MAP: Fog of War Decomposition & Modalities   │
-       │    (grilling: HITL | prototype: spike | research | mutate)│
-       └─────────────────────────────┬─────────────────────────────┘
-                                     │
-                                     ▼
-       ┌───────────────────────────────────────────────────────────┐
-       │ 1. EXPLORE: Active Frontier, CONSTRAINTS.md & LATS Tree   │
-       └─────────────────────────────┬─────────────────────────────┘
-                                     │
-                                     ▼
-       ┌───────────────────────────────────────────────────────────┐
-       │ 2. CONTRACT: Deep Innovation Gate (DIG) Pre-Register      │
-       │    (Claim unblocked frontier node, state anti-goals & PRM)│
-       └─────────────────────────────┬─────────────────────────────┘
-                                     │
-                                     ▼
-       ┌───────────────────────────────────────────────────────────┐
-       │ 3. MUTATE: Poka-Yoke Edit in Isolated Git Worktree        │
-       └─────────────────────────────┬─────────────────────────────┘
-                                     │
-                                     ▼
-       ┌───────────────────────────────────────────────────────────┐
-       │ 4. VERIFY: Evidence Ladder (Smoke -> Scout -> Complete)   │
-       └─────────────────────────────┬─────────────────────────────┘
-                                     │
-            Improved? ├─────────────────────────┐
-           (YES)      │                         │ (NO)
-                      ▼                         ▼
-         ┌─────────────────────────┐ ┌─────────────────────────┐
-         │ 5. Keep & Advance       │ │ 5. Extract Negative/    │
-         │    Confirmed Frontier   │ │    Diagnostic Lesson    │
-         │    & Graduate Fog       │ │    to CONSTRAINTS.md    │
-         └────────────┬────────────┘ └───────────┬─────────────┘
-                      │                         │
-                      └────────────┬────────────┘
-                                   │
-                                   ▼
-         ┌─────────────────────────────────────────────────────┐
-         │ 6. Update JOURNAL.md & Solution Lineage DAG         │
-         └─────────────────────────┬───────────────────────────┘
-                                   │
-                                   ▼
-         ┌─────────────────────────────────────────────────────┐
-         │ 7. Gems Memory Compression (Index vs Store, <=500tok)│
-         └─────────────────────────┬───────────────────────────┘
-                                   │
-                                   ▼
-         ┌─────────────────────────────────────────────────────┐
-         │ 8. Repeat (Push to Pareto Frontier, full Lineage)   │
-         └─────────────────────────────────────────────────────┘
+```sh
+git clone https://github.com/AkCodes23/AutoEvolve.git
+sh AutoEvolve/install.sh "/path/to/project" --agents generic
 ```
 
----
-
-## 🪜 The 7-Rung Minimalism Ladder
-
-Stop at the first rung that holds:
-
-```text
-1. Not at all (YAGNI)      --> Speculative requirement? Reject it.
-2. Reuse what is here      --> Helper or pattern in codebase? Reuse it.
-3. Stdlib                  --> Standard library has it? Use it.
-4. Platform feature        --> Language/runtime primitive covers it? Use it.
-5. Installed dependency    --> Already in dependencies? Use it. Never add new packages.
-6. One line                --> Can it be expressed in one clean line? One line.
-7. Minimum code            --> Only then, write the minimal working implementation.
+```powershell
+.\AutoEvolve\install.ps1 -TargetDir "C:\project" -Agents generic
 ```
 
----
+Source files are resolved relative to the saved installer, never the target
+directory. No language packages are needed to install: POSIX uses standard shell
+utilities, `sha256sum` or macOS `shasum`, and curl/wget for downloads; PowerShell
+uses built-in commands. A checkout must include generated distribution files.
 
-## 🛡️ Core Engineering Invariants
+## Choose and activate your assistant
 
-- **Wayfinding & Fog of War Decomposition**: Decompose ambiguous multi-session initiatives into Destination, Active Frontier, Fog of War, and Out of Scope before mutating code.
-- **Strict HITL Modality**: For requirements interrogation (`grilling`), engage the human directly; the agent must never answer its own grilling questions.
-- **Surgical Blast Radius**: Know all callers before modifying a shared signature; fix the shared contract, not just the one reporting call site.
-- **Trust Boundaries & Non-Blocking Locks**: Validate external inputs without silent coercion. Categorize errors (client vs server vs dependency), time out all I/O, and never hold locks across network calls.
-- **Subprocess Safety**: Pass array arguments (`subprocess.run(['cmd', 'arg'])`), never concatenated strings with `shell=True`. Keep commands cross-platform (PowerShell & POSIX).
-- **Idempotency by Design**: Ensure retried database writes, event handlers, and webhooks are safe to run multiple times without duplicate side effects.
-- **Asymptotic Scaling**: Test critical paths across scales (\(N=10\) vs \(N=10{,}000\)) against deterministic, seeded signals.
-- **Log Sanitization**: Redact secrets, Authorization tokens, and PII before writing to console or journals.
-- **Direct Code**: Code explains what; comments explain why. Never commit change narration or dead code.
-- **Error-Proof by Design (Poka-Yoke)**: Make invalid internal states unrepresentable via types, schemas, and constraints. Catch defects at compile/design time before runtime, while continuing to strictly validate untrusted external inputs at runtime boundaries. Fail fast with clear, actionable messages.
-- **Evidence Before Claims**: Run the verification command and cite its output before asserting completion. "Should work" and "looks correct" are not evidence; only fresh command output is.
-- **Proactive Circuit Breaking**: Track rate-limit windows, token quotas, and service health before calling downstream services. Route around exhausted or degraded dependencies instead of burning retry cycles.
-- **Content-Addressed Invalidation**: Hash upstream inputs and configs; when hashes diverge, auto-invalidate stale downstream artifacts while unconditionally preserving user-created files and production outputs.
+Use `--list-agents` / `-ListAgents` to list available IDs, or see the
+[compatibility and activation guide](docs/adapters.md). Examples:
 
----
+```sh
+sh AutoEvolve/install.sh . --agents cline,continue,copilot
+sh AutoEvolve/install.sh . --agents aider
+aider --read CONVENTIONS.md
+```
 
-## 🚀 Next-Gen Capabilities (v3.0 $\to$ v4.0 $\to$ v5.0 $\to$ v0.6)
+The manifest distinguishes Claude Code, Cursor, Copilot, Cline, Continue, Windsurf,
+Gemini CLI, Aider, JetBrains AI Assistant, Junie, Zed, OpenHands, and manual Cody
+context. Product variants are not implicitly supported. All integrations are
+**experimental** pending live version-specific activation evidence; installer
+tests alone cannot prove an IDE loaded a rule.
 
-| Dimension | Legacy AI Assistants | AutoEvolve v3.0 / v4.0 | AutoEvolve v5.0 (Wayfinding & Swarm) | AutoEvolve v0.6 (Governed & Aligned) |
-|---|---|---|---|---|
-| **Phase 0 Planning** | None (Edit blindly) | Smallest diff / DIG contract | **Wayfinding Decision Maps**: Decomposes Fog of War into Destination, Frontier, Fog, Out of Scope | **Pre-Flight Feasibility Gate**: Zero compute dispatched on out-of-distribution or unfilmable prompts |
-| **Exploration Modalities** | Monolithic text edit | Code mutation only | **4 Distinct Modes**: `grilling` (HITL), `prototype` (spike), `research` (AFK), `mutate` (AFK) | **Poka-Yoke Bounded Synthesis**: Temporal/token/step ceilings bounded by construction |
-| **Failed Experiments** | Repeatedly tried / forgotten | Extracted to `CONSTRAINTS.md` | **Neurosymbolic Failure Graph**: Directed causal DAG blocking repeat dead-ends | **Active Closed-Loop Ingestion**: Live telemetry dynamically updates bandit posteriors & failure graphs |
-| **Evaluation Depth** | Single unstructured run | Binary command test | **Multi-Stage Evidence Ladder**: `smoke` (<1s) $\to$ `scout` (<5s) $\to$ `complete` (<30s) | **Honest QC & Monotonic $\Delta Q$**: Fallbacks carry non-recoverable penalties; quarantine degraded outputs |
-| **Multi-Branching** | Random greedy edits | Heuristic worktrees | **LATS Tree Search & Swarm Islands**: SIMD, lock-free, cache-oblivious with semantic crossover | **Cost-Aware Speculative Execution**: $E[\text{ROI}]$-gated execution allocating heavy compute only to viable paths |
-| **Memory / Context** | Prompt bloat / context limit | Gems compression (<=500 tokens) | **Index vs Store Architecture**: High-speed low-res map indices pointing to deep contract nodes | **Bounded Contextual Bandits**: Parameterized prompt archetypes calibrated by production feedback |
-| **Concurrency Control** | Race conditions / collisions | Island isolation | **Atomic Frontier Node Claiming**: Prevents multi-agent collision across parallel worktrees | **Blast-Radius & Call-Site Guarding**: Shared contracts verified before crossing trust boundaries |
-| **Adversarial Rigor** | Agent self-approval | Single pass metric | **Adversarial Skeptic Audit**: Red-teams for assertion weakening, mock relaxing, regressions | **Anti-Goodhart Governance**: Independent blind verification eliminating "green dashboard theater" |
-| **Objective Alignment** | Proxy completion / pedantry | Instruction following | Technical contract satisfaction | **External Human Utility**: Anti-pedantry invariant maximizing immediate value velocity and real stakes |
+For each selected agent, follow its activation check before starting a task.
+AI Assistant requires setting the rule's activation mode; Aider and Cody require
+explicit context loading. Existing rules may have higher precedence. Select only
+one entrypoint per host where possible to avoid duplicate prompt context.
 
----
+## First task
 
-## ⚙️ 1-Click Drop-In Matrix (12 Platforms)
+1. Fill in `DIRECTION.md` with the requested outcome, a verification command,
+   success criterion, guardrails, and limits. The starter has no project-specific
+   objective or claimed test results.
+2. Ask the assistant: “Read DIRECTION.md, establish the baseline, and work on this
+   objective using AutoEvolve.”
+3. Review the actual diff and evidence. The default is one candidate at a time,
+   at most three attempts, fifteen elapsed minutes, or two consecutive failures.
+   Success stops the loop immediately.
 
-| Tool / IDE | Adapter File | Target Rules Location | Auto-Detection Trigger |
-|:---|:---|:---|:---|
-| **Claude Code / AGENTS.md** | [`AGENTS.md`](./AGENTS.md) | `AGENTS.md` (or `CLAUDE.md`) | Default fallback |
-| **Cursor IDE** | [`adapters/cursor.mdc`](./adapters/cursor.mdc) | `.cursor/rules/autoevolve.mdc` | `.cursor/` or `.cursorrules` |
-| **Windsurf (Cascade)** | [`adapters/windsurf.md`](./adapters/windsurf.md) | `.windsurfrules` | `.windsurfrules` or `.windsurf/` |
-| **GitHub Copilot** | [`adapters/copilot-instructions.md`](./adapters/copilot-instructions.md) | `.github/copilot-instructions.md` | `.github/` |
-| **Cline & Roo Code** | [`adapters/cline.md`](./adapters/cline.md) | `.clinerules` | `.clinerules` |
-| **Aider CLI** | [`adapters/aider.md`](./adapters/aider.md) | `CONVENTIONS.md` | `.aider*` config |
-| **Continue.dev** | [`adapters/continue.md`](./adapters/continue.md) | `.continue/prompts/autoevolve.prompt` | `.continue/` |
-| **Google Gemini & Antigravity** | [`adapters/gemini.md`](./adapters/gemini.md) | `GEMINI.md` | `.gemini/` |
-| **Zed AI Assistant** | [`adapters/zed.md`](./adapters/zed.md) | `.zed/rules.md` | `.zed/` |
-| **JetBrains AI / Junie** | [`adapters/jetbrains.md`](./adapters/jetbrains.md) | `.jetbrains/ai-instructions.md` | `.idea/` |
-| **Sourcegraph Cody** | [`adapters/cody.md`](./adapters/cody.md) | `.cody/instructions.md` | `.cody/` |
-| **OpenHands & SWE-Agent** | [`adapters/openhands.md`](./adapters/openhands.md) | `.openhands/instructions.md` | `.openhands/` |
+Limits are prompt instructions, not runtime enforcement. Use the host's own time,
+token, and spending controls where available. The assistant must disclose missing
+verification rather than treating it as a passing check.
 
----
+## Existing files, upgrades, and recovery
 
-## ❓ Frequently Asked Questions (FAQ)
+- Existing `DIRECTION.md`, `JOURNAL.md`, and `CONSTRAINTS.md` are always preserved,
+  including with `--force` / `-Force`. Review updated templates separately.
+- Byte-identical instructions are reported as **current**. Differing instructions
+  are a **manual integration required** conflict (exit code 2), not a success.
+- `--force` / `-Force` upgrades only unmodified instructions recorded by this
+  installer in `.autoevolve/receipts/`. It backs up replaced files under
+  `.autoevolve/backups/`. Edited and untracked instructions remain protected.
+  Earlier AutoEvolve releases have no receipts and require a manual migration.
+- Compare a conflicting file with its selected source in `adapters/manifest.json`,
+  then merge the desired instructions yourself. Do not delete existing rules just
+  to make the installer succeed. Future upgrades of manually merged files remain
+  manual. A legacy `.clinerules` file must be migrated or merged before installing
+  the directory-based Cline rule.
+- All selected downloads are staged and checksum-validated before any instruction
+  is changed. Each final file is replaced atomically; this is not a transaction
+  across every file. Interrupted installs can be rerun. Transfer or checksum errors
+  return nonzero and never leave a partial download at its final path.
+- Checksums detect damaged distribution files; they are not a signature independent
+  of the repository. Use a trusted commit for provenance.
+- An install lock prevents simultaneous installers in one target. After a process
+  is forcibly killed, confirm no installer is running before removing the stale
+  `.autoevolve/install.lock` directory and abandoned staging directories.
+- Review backups before restoring them. To uninstall, remove only the instruction
+  files you installed (or the sections you manually merged). Keep goals and
+  journals if useful. `.autoevolve/` is local installer state; exclude it from
+  version control in your target project.
 
-### Q: Does AutoEvolve consume extra API tokens?
-**No.** In fact, AutoEvolve typically reduces net token consumption by up to 40% across multi-turn sessions. Standard agents continuously accumulate noisy command output and repeat failed attempts until the context window is saturated. AutoEvolve's **Gems Memory Compression** distills long sessions into concise summaries ($\le 500$ tokens) and archives historical diffs to `LINEAGE.md`.
+The installer reports file placement and conflicts, not successful agent activation.
+Network, invalid-input, or filesystem errors return nonzero (normally 1); manual
+integration conflicts return 2. Exit code 0 still requires the activation check.
 
-### Q: Does it require any background daemons, Python packages, or Docker?
-**Zero dependencies.** AutoEvolve is 100% pure prompt architecture and markdown protocols. It requires no pip installations, no local servers, and no background processes. It works inside whatever editor, terminal, or LLM you already use.
+## Outcomes and efficiency
 
-### Q: How does it prevent agents from getting stuck in infinite loops?
-AutoEvolve enforces **graduated failure escalation**:
-- **1st failure**: Immediate isolated worktree revert + root cause extraction to `CONSTRAINTS.md`.
-- **2nd failure**: Mandatory orthogonal pivot to a different surface or mechanism.
-- **3+ failures**: The agent questions the foundational architecture and halts to request human guidance rather than thrashing.
+There is **no measured token-saving or task-success claim** for this release.
+Prompt overhead, model behavior, and host context loading vary. Compare verified
+success, cost per success including failed attempts, elapsed time, and user
+interventions using the [evaluation procedure](docs/evaluation.md) before claiming
+a benefit.
 
-### Q: Does AutoEvolve work with any programming language?
-**Yes.** AutoEvolve is language-agnostic. Whether you write Rust, TypeScript, Python, Go, C++, or Java, the protocol applies identical rigor to blast radius mapping, invariant verification, non-blocking concurrency, and empirical evidence gathering.
+## Development
 
-### Q: How do I define my own optimization goals?
-Simply create or update `DIRECTION.md` in your project root with your target objective, a frozen verification command (e.g. `pytest`, `cargo test`, `npm test`), and a maximum iteration budget.
+`PROTOCOL.md` and `adapters/manifest.json` are canonical. Do not hand-edit generated
+`AGENTS.md`, adapters, the compatibility guide, or `checksums.txt`.
 
----
+```sh
+python3 scripts/build_adapters.py
+python3 scripts/build_adapters.py --check
+python3 -m unittest discover -s tests -v
+sh -n install.sh
+```
 
-## 💡 Why "Mindset-Only"? (Zero Dependencies)
+With development tools installed:
 
-Many AI frameworks try to build heavyweight CLI wrappers, daemon processes, or proprietary Python runtimes that intercept your tools. These tools frequently break cross-platform, get stale, conflict with existing virtual environments, and add unnecessary friction.
+```sh
+python3 -m pip install -r requirements-dev.txt
+ruff check scripts tests
+ruff format --check scripts tests
+mypy scripts tests
+shellcheck install.sh
+```
 
-**AutoEvolve is pure prompt architecture.** By injecting exact evolutionary engineering rules natively into your assistant's system instructions, your agent acts like a disciplined senior engineer without requiring a single external package or dependency.
+Python 3.10+ runs the generator and fixtures; it is not required by installed
+projects. The suite uses `sh` on POSIX and available Windows PowerShell / `pwsh` on
+Windows. It mocks network transfers and exercises real installer processes.
+[CI](.github/workflows/ci.yml) covers Linux, macOS, Windows PowerShell 5.1, and
+PowerShell 7. Live IDE activation and controlled agent-outcome trials are separate
+from these checks.
 
----
+## License
 
-## 📄 License
-
-[MIT](./LICENSE) © 2026 AutoEvolve
+[MIT](LICENSE).

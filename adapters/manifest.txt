@@ -1,0 +1,14 @@
+generic|AGENTS.md|AGENTS.md|automatic|experimental
+claude|adapters/claude.md|CLAUDE.md|automatic|experimental
+cursor|adapters/cursor.mdc|.cursor/rules/autoevolve.mdc|automatic|experimental
+copilot|adapters/copilot-instructions.md|.github/instructions/autoevolve.instructions.md|automatic|experimental
+cline|adapters/cline.md|.clinerules/autoevolve.md|automatic|experimental
+continue|adapters/continue.md|.continue/rules/autoevolve.md|automatic|experimental
+windsurf|adapters/windsurf.md|.windsurf/rules/autoevolve.md|automatic|experimental
+gemini|adapters/gemini.md|GEMINI.md|automatic|experimental
+aider|adapters/aider.md|CONVENTIONS.md|manual|experimental
+jetbrains|adapters/jetbrains.md|.aiassistant/rules/autoevolve.md|manual|experimental
+junie|adapters/junie.md|AGENTS.md|automatic|experimental
+zed|adapters/zed.md|AGENTS.md|automatic|experimental
+openhands|adapters/openhands.md|AGENTS.md|automatic|experimental
+cody|adapters/cody.md|AUTOEVOLVE.md|manual|experimental

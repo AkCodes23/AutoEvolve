@@ -1,8 +1,7 @@
-# Experiment Journal
+# Journal
 
-<!-- Append-only log of iterations. One line per run. -->
+No baseline or experiment has been run by this template.
+Record actual outputs; never substitute example results for evidence.
 
-| Commit | Signal Result | Stage | Intent | Decision | What Changed & Why |
-|:---|:---:|:---:|:---:|:---:|:---|
-| `HEAD~0` | `10/10 passed` | complete | baseline | **BASELINE** | Initial working baseline |
-
+| Revision / diff | Command and exit status | Measured result | Elapsed / attempts | Decision and reason |
+| --- | --- | --- | --- | --- |

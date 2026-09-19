@@ -1,45 +1,35 @@
-# AutoEvolve Direction & Wayfinding Protocols
+# Direction
 
-## Objective
-Define architectural evolution goals, wayfinding decision frontiers, and hard verification constraints.
+Complete this from the user's request and existing project documentation before
+editing code. Ask only for essential information that cannot be inferred.
 
-## Destination
-Optimize system performance and reliability through neurosymbolic wayfinding and evolutionary mutations.
+## Outcome and evidence
 
-## Active Frontier
-- [ ] [F-01] Design and verify AST invariant fuzzer (mode: mutate, blocked_by: [], claim: none, signal: pytest tests/test_v35_tree_search_and_prm.py)
-- [ ] [F-02] SMT concurrency safety verification (mode: mutate, blocked_by: [F-01], claim: none, signal: pytest tests/test_v40_neurosymbolic_swarm.py)
+- Objective: [one user-visible result]
+- Success criterion: [observable behavior or measurable threshold]
+- Verification command: [an actual command in this project]
+- Guardrail commands: [existing tests, lint, type checks, or other required checks]
+- Baseline: **not measured** — record revision, command, exit status, and result
+- Known target failure: [if this is a repair, identify the expected baseline failure]
+- In scope: [files, interfaces, or behavior]
+- Out of scope / must preserve: [data, APIs, existing work, performance bounds]
 
-## Fog of War
-- Distributed cross-node worktree synchronization protocol (blocked on F-02)
-- Multi-provider real-time LLM cost auctioneer
+## Limits
 
-## Out of Scope
-- No runtime daemons or external service dependencies
-- No breaking changes to existing 12 IDE adapter contracts
+- Maximum attempts: **3**
+- Maximum elapsed minutes, including planning and verification: **15**
+- Maximum consecutive failed candidates: **2**
+- Parallel candidates: **1**
+- Token / cost cap: [optional; use host controls when available]
+- Per-command timeout: [fit within remaining elapsed budget]
 
-## Decisions So Far
-- [F-00 Mindset Synchronization](file:///LINEAGE.md#F-00): Upgraded to AutoEvolve v5.0 with full Wayfinding & Fog of War decomposition
+Use positive limits. Stop on verified success, any exhausted limit, required user
+input, or unavailable required access/checks. Request approval before extending
+limits. These are prompt instructions; configure host limits for hard enforcement.
+Report unobservable usage as unavailable.
 
-## Signal
-- Primary Signal: Invariant pass rate + p99 latency reduction + memory RSS efficiency.
-- Secondary Signal: AST cyclomatic complexity, test coverage integrity, zero assertion degradation.
+## Optional capabilities
 
-## Hard Gates (must pass: binary)
-1. **Zero Test Regressions**: All existing unit, integration, and invariant tests must pass 100%.
-2. **Adversarial Skeptic Audit**: Zero assertion weakening (`assert True`), zero empty test bodies, zero hash tampering.
-3. **SMT Safety Invariants**: Zero unbounded global state mutations, correct lock pairing, zero unhandled recursion.
-4. **Failure Constraint Adherence**: Candidate diff must not repeat patterns listed in `CONSTRAINTS.md`.
-
-## Soft Gates (should meet: proportional)
-- Latency improvement >= 15% on target benchmark.
-- Memory RSS reduction or zero allocation overhead in hot paths.
-- Code brevity: minimal diff complexity, no dead code.
-
-## Resource Quotas
-- Maximum wall-clock time per test stage: smoke (<1s), scout (<5s), complete (<30s).
-- Maximum memory RSS footprint: <= 512KB for stream joins, <= 2MB total heap.
-
-## Budget
-- Active context memory: <= 500 tokens for `.autoevolve/gems.md`.
-- Exploration budget: 70% exploitation of proven families, 30% orthogonal coordinates.
+List additional verification commands only if they exist and serve this objective.
+Formal verification, fuzzing, independent audits, and parallel search are **not
+configured** by this template and are not prerequisites for the default workflow.
