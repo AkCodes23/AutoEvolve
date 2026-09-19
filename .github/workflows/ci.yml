@@ -1,0 +1,47 @@
+name: Distribution checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  installers:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: python scripts/build_adapters.py --check
+      - run: python -m unittest discover -s tests -v
+      - name: POSIX syntax
+        if: runner.os != 'Windows'
+        run: sh -n install.sh
+      - name: PowerShell syntax
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $errors = $null
+          $tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "$pwd/install.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors) { $errors | Format-List; exit 1 }
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: python -m pip install -r requirements-dev.txt
+      - run: ruff check scripts tests
+      - run: ruff format --check scripts tests
+      - run: mypy scripts tests
+      - run: shellcheck install.sh

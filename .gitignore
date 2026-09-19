@@ -5,17 +5,12 @@
 .idea/
 .vscode/
 
-# Pure Mindset Repo: No Python, scripts, benchmarks, tests, or CI
-*.py
 *.pyc
 __pycache__/
-scripts/
-benchmarks/
-tests/
-.github/
-evals/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.venv/
 .deepeval/
 .code-review-graph/
 
@@ -32,4 +27,4 @@ scratch/
 # Git worktrees
 .worktrees/
 worktrees/
-
+.autoevolve/

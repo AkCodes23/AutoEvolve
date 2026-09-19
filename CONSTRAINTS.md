@@ -1,11 +1,7 @@
-﻿# Active Constraints (Cumulative Evidence Store)
+# Constraints
 
-<!--
-AutoEvolve inherits failure knowledge as first-class constraints.
-When an experiment fails or is reverted, append a typed finding below.
-Subsequent loops and agent sessions MUST read and satisfy these active constraints.
--->
+No project-specific failure constraints have been recorded.
 
-| ID | Type | Surface | Attempted Mechanism | Failure Outcome & Root Cause | Action |
-|---|---|---|---|---|---|
-| C-000 | procedural | `DIRECTION.md` | Single-stage evaluation | Evaluator timeout under full suite without smoke gate | enforce-ladder |
+After a relevant failure, add a concise entry with the observed failure, evidence,
+root cause (or an explicitly labeled hypothesis), and the condition that avoids
+repeating it. Preserve useful history; do not turn guesses into universal rules.
